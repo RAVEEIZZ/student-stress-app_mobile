@@ -7,6 +7,7 @@ import '../../../app/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/gradient_button.dart';
+import '../models/question_model.dart';
 import '../providers/questionnaire_provider.dart';
 
 class QuestionnaireQuestionsScreen extends StatelessWidget {
@@ -23,7 +24,6 @@ class QuestionnaireQuestionsScreen extends StatelessWidget {
             }
 
             final question = provider.currentQuestion;
-            final selectedAnswer = provider.getAnswer(question.id);
 
             return Column(
               children: [
@@ -77,8 +77,10 @@ class QuestionnaireQuestionsScreen extends StatelessWidget {
                               child: LinearProgressIndicator(
                                 value: provider.progress,
                                 minHeight: 8,
-                                backgroundColor: AppColors.primary.withOpacity(0.1),
-                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                backgroundColor:
+                                    AppColors.primary.withValues(alpha: 0.1),
+                                valueColor:
+                                    const AlwaysStoppedAnimation<Color>(
                                   AppColors.primary,
                                 ),
                               ),
@@ -92,18 +94,18 @@ class QuestionnaireQuestionsScreen extends StatelessWidget {
 
                 const SizedBox(height: 32),
 
-                // Category badge
+                // Label badge
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.08),
+                    color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    question.category,
+                    question.label,
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700,
@@ -143,72 +145,11 @@ class QuestionnaireQuestionsScreen extends StatelessWidget {
 
                 const SizedBox(height: 36),
 
-                // Scale options
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      _buildScaleLabels(),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: List.generate(5, (index) {
-                          final value = index + 1;
-                          final isSelected = selectedAnswer == value;
-
-                          return GestureDetector(
-                            onTap: () => provider.setAnswer(question.id, value),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: isSelected ? 60 : 54,
-                              height: isSelected ? 60 : 54,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.surface,
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppColors.primary
-                                      : AppColors.border,
-                                  width: isSelected ? 2 : 1,
-                                ),
-                                boxShadow: isSelected
-                                    ? [
-                                        BoxShadow(
-                                          color:
-                                              AppColors.primary.withOpacity(0.3),
-                                          blurRadius: 16,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ]
-                                    : [
-                                        BoxShadow(
-                                          color: AppColors.shadow,
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '$value',
-                                  style: TextStyle(
-                                    fontSize: isSelected ? 20 : 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : AppColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
-                ),
+                // Answer options
+                if (question.type == QuestionType.faculty)
+                  _FacultyPicker(provider: provider)
+                else
+                  _LikertScale(provider: provider, question: question),
 
                 const Spacer(),
 
@@ -251,7 +192,7 @@ class QuestionnaireQuestionsScreen extends StatelessWidget {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Padding(
@@ -263,12 +204,11 @@ class QuestionnaireQuestionsScreen extends StatelessWidget {
             ),
           )
               .animate(onPlay: (c) => c.repeat())
-              .shimmer(duration: 1500.ms, color: AppColors.primary.withOpacity(0.1)),
+              .shimmer(
+                  duration: 1500.ms,
+                  color: AppColors.primary.withValues(alpha: 0.1)),
           const SizedBox(height: 28),
-          Text(
-            'Menganalisis jawaban...',
-            style: AppTextStyles.subtitle1,
-          ),
+          Text('Menganalisis jawaban...', style: AppTextStyles.subtitle1),
           const SizedBox(height: 8),
           Text(
             'AI sedang memproses prediksi stres Anda',
@@ -278,20 +218,149 @@ class QuestionnaireQuestionsScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildScaleLabels() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Tidak Pernah',
-          style: AppTextStyles.caption.copyWith(fontSize: 11),
-        ),
-        Text(
-          'Selalu',
-          style: AppTextStyles.caption.copyWith(fontSize: 11),
-        ),
-      ],
+class _LikertScale extends StatelessWidget {
+  final QuestionnaireProvider provider;
+  final QuestionModel question;
+
+  const _LikertScale({required this.provider, required this.question});
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedAnswer = provider.getLikertAnswer(question.id);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Tidak Pernah',
+                style: AppTextStyles.caption.copyWith(fontSize: 11),
+              ),
+              Text(
+                'Selalu',
+                style: AppTextStyles.caption.copyWith(fontSize: 11),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(5, (index) {
+              final value = index + 1;
+              final isSelected = selectedAnswer == value;
+
+              return GestureDetector(
+                onTap: () => provider.setLikertAnswer(question.id, value),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: isSelected ? 60 : 54,
+                  height: isSelected ? 60 : 54,
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.primary : AppColors.surface,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color:
+                          isSelected ? AppColors.primary : AppColors.border,
+                      width: isSelected ? 2 : 1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: AppColors.shadow,
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$value',
+                      style: TextStyle(
+                        fontSize: isSelected ? 20 : 18,
+                        fontWeight: FontWeight.w700,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FacultyPicker extends StatelessWidget {
+  final QuestionnaireProvider provider;
+
+  const _FacultyPicker({required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        alignment: WrapAlignment.center,
+        children: QuestionModel.faculties.map((faculty) {
+          final isSelected = provider.selectedFaculty == faculty;
+          return GestureDetector(
+            onTap: () => provider.setFaculty(faculty),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary : AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : AppColors.border,
+                  width: isSelected ? 2 : 1,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: AppColors.shadow,
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+              ),
+              child: Text(
+                faculty,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 }

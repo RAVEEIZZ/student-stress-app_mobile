@@ -74,8 +74,8 @@ class QuestionnaireIntroScreen extends StatelessWidget {
                   // Info cards
                   _InfoCard(
                     icon: Iconsax.document_text,
-                    title: '20 Pertanyaan',
-                    subtitle: 'Kuesioner terdiri dari 20 pertanyaan tentang kondisi akademik, fisik, psikologis, dan sosial Anda.',
+                    title: '14 Pertanyaan',
+                    subtitle: 'Kuesioner terdiri dari 1 pertanyaan pilihan fakultas dan 13 pertanyaan tentang kondisi stres akademik Anda.',
                     delay: 300,
                   ),
 
