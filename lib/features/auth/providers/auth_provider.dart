@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
+import '../../../core/services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   UserModel? _user;
@@ -11,59 +12,82 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _user != null;
   String? get error => _error;
 
-  // Mock login
+  /// Login via Laravel API.
+  ///
+  /// Return `true` jika login berhasil, `false` jika gagal.
+  /// Error message disimpan di [error].
   Future<bool> login(String email, String password) async {
+    // Validasi input sebelum kirim ke server
+    if (email.isEmpty || password.isEmpty) {
+      _error = 'Email dan password harus diisi';
+      notifyListeners();
+      return false;
+    }
+
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (email.isNotEmpty && password.isNotEmpty) {
-      _user = UserModel(
-        id: '1',
-        name: 'Raditya Pratama',
+    try {
+      final response = await AuthService.login(
         email: email,
-        nim: '2024001234',
-        createdAt: DateTime.now(),
+        password: password,
       );
+
+      // Parse user data dari response
+      final userData = response['data'] as Map<String, dynamic>;
+      _user = UserModel.fromJson(userData);
+
       _isLoading = false;
       notifyListeners();
       return true;
+    } on Exception catch (e) {
+      // Hapus prefix "Exception: " dari pesan error
+      _error = e.toString().replaceFirst('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
     }
-
-    _error = 'Email atau password salah';
-    _isLoading = false;
-    notifyListeners();
-    return false;
   }
 
-  // Mock register
+  /// Register mahasiswa baru via Laravel API.
+  ///
+  /// Setelah register sukses, user TIDAK otomatis login.
+  /// User harus login manual setelah register berhasil.
   Future<bool> register({
-    required String name,
-    required String email,
+    required String nama,
     required String nim,
+    required String email,
     required String password,
+    required String passwordConfirmation,
+    required int dosenId,
   }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      await AuthService.register(
+        nama: nama,
+        nim: nim,
+        email: email,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+        dosenId: dosenId,
+      );
 
-    _user = UserModel(
-      id: '1',
-      name: name,
-      email: email,
-      nim: nim,
-      createdAt: DateTime.now(),
-    );
-    _isLoading = false;
-    notifyListeners();
-    return true;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on Exception catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
-  // Mock forgot password
+  // Mock forgot password (akan diintegrasikan nanti)
   Future<bool> forgotPassword(String email) async {
     _isLoading = true;
     _error = null;

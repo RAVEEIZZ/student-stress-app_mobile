@@ -27,6 +27,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
+  // Dosen ID — default dosen pembimbing
+  int _selectedDosenId = 2;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -38,14 +41,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _handleRegister() async {
+    // Validasi field kosong
+    if (_nameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _nimController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty ||
+        _confirmController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Semua field harus diisi'),
+          backgroundColor: AppColors.stressHigh,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
+    // Validasi password cocok
     if (_passwordController.text != _confirmController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Password tidak cocok'),
           backgroundColor: AppColors.stressHigh,
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
+    // Validasi password minimal 6 karakter
+    if (_passwordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Password minimal 6 karakter'),
+          backgroundColor: AppColors.stressHigh,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
       return;
@@ -53,13 +86,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     final auth = context.read<AuthProvider>();
     final success = await auth.register(
-      name: _nameController.text.trim(),
+      nama: _nameController.text.trim(),
       email: _emailController.text.trim(),
       nim: _nimController.text.trim(),
       password: _passwordController.text.trim(),
+      passwordConfirmation: _confirmController.text.trim(),
+      dosenId: _selectedDosenId,
     );
-    if (success && mounted) {
-      context.go(AppRoutes.dashboard);
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Registrasi berhasil! Silakan login.'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      // Redirect ke halaman login
+      context.go(AppRoutes.login);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.error ?? 'Registrasi gagal'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -140,11 +198,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 20),
 
+                  // Dosen Pembimbing
+                  Text('Dosen Pembimbing', style: AppTextStyles.label),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.textHint.withOpacity(0.2),
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _selectedDosenId,
+                        isExpanded: true,
+                        icon: const Icon(Iconsax.arrow_down_1, size: 20),
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        dropdownColor: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 2,
+                            child: Text('Dosen Pembimbing 1'),
+                          ),
+                          DropdownMenuItem(
+                            value: 3,
+                            child: Text('Dosen Pembimbing 2'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _selectedDosenId = value);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
                   // Password
                   Text('Password', style: AppTextStyles.label),
                   const SizedBox(height: 8),
                   CustomTextField(
-                    hintText: 'Masukkan password',
+                    hintText: 'Masukkan password (min. 6 karakter)',
                     prefixIcon: Iconsax.lock,
                     controller: _passwordController,
                     obscureText: _obscurePassword,
