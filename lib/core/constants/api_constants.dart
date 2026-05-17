@@ -8,8 +8,10 @@ class ApiConstants {
   /// Endpoint paths
   static const String loginEndpoint = '/api/login';
   static const String registerEndpoint = '/api/register';
+  static const String followUpsEndpoint = '/api/follow-ups';
 
   /// Full URLs
   static String get loginUrl => '$baseUrl$loginEndpoint';
   static String get registerUrl => '$baseUrl$registerEndpoint';
+  static String get followUpsUrl => '$baseUrl$followUpsEndpoint';
 }
