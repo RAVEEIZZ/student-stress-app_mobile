@@ -3,7 +3,7 @@ class ApiConstants {
   ApiConstants._();
 
   /// Base URL Laravel API server (auth, follow-ups)
-  static const String baseUrl = 'http://192.168.1.75:8000';
+  static const String baseUrl = 'http://10.0.2.2:8000';
 
   /// Base URL FastAPI Prediction server (Railway)
   static const String predictionBaseUrl = 'https://stress-api-deploy-production.up.railway.app';

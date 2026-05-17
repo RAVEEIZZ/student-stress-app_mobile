@@ -24,17 +24,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nimController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
+  final _nipDosenController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
-
-  // Dosen ID — default dosen pembimbing
-  int _selectedDosenId = 2;
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _nimController.dispose();
+    _nipDosenController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
@@ -45,6 +44,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_nameController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty ||
         _nimController.text.trim().isEmpty ||
+        _nipDosenController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty ||
         _confirmController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -91,7 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       nim: _nimController.text.trim(),
       password: _passwordController.text.trim(),
       passwordConfirmation: _confirmController.text.trim(),
-      dosenId: _selectedDosenId,
+      nipDosen: _nipDosenController.text.trim(),
     );
 
     if (!mounted) return;
@@ -198,45 +198,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Dosen Pembimbing
-                  Text('Dosen Pembimbing', style: AppTextStyles.label),
+                  // NIP Dosen Wali
+                  Text('NIP Dosen Wali', style: AppTextStyles.label),
                   const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppColors.textHint.withOpacity(0.2),
-                      ),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: _selectedDosenId,
-                        isExpanded: true,
-                        icon: const Icon(Iconsax.arrow_down_1, size: 20),
-                        style: AppTextStyles.body.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
-                        dropdownColor: AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 2,
-                            child: Text('Dosen Pembimbing 1'),
-                          ),
-                          DropdownMenuItem(
-                            value: 3,
-                            child: Text('Dosen Pembimbing 2'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _selectedDosenId = value);
-                          }
-                        },
-                      ),
-                    ),
+                  CustomTextField(
+                    hintText: 'Masukkan NIP dosen wali',
+                    prefixIcon: Iconsax.teacher,
+                    controller: _nipDosenController,
+                    keyboardType: TextInputType.number,
                   ),
 
                   const SizedBox(height: 20),

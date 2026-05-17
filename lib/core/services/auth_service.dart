@@ -56,7 +56,7 @@ class AuthService {
     required String email,
     required String password,
     required String passwordConfirmation,
-    required int dosenId,
+    required String nipDosen,
   }) async {
     try {
       final response = await http
@@ -72,7 +72,7 @@ class AuthService {
               'email': email,
               'password': password,
               'password_confirmation': passwordConfirmation,
-              'dosen_id': dosenId,
+              'nip_dosen': nipDosen,
             }),
           )
           .timeout(const Duration(seconds: 15));
