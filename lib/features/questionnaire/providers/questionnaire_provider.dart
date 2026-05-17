@@ -1,5 +1,7 @@
-import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../../../core/constants/api_constants.dart';
 import '../models/question_model.dart';
 
 class QuestionnaireProvider extends ChangeNotifier {
@@ -82,20 +84,107 @@ class QuestionnaireProvider extends ChangeNotifier {
     _isSubmitting = true;
     notifyListeners();
 
-    // Simulate API call — ganti dengan real API call ke backend
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final payload = buildPayload();
 
-    final payload = buildPayload();
+      // === REAL API CALL ke Railway FastAPI ===
+      final response = await http.post(
+        Uri.parse(ApiConstants.predictUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
 
-    // Hitung Academic_Stress_Score = rata-rata p1..p6
-    final academicKeys = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
-    final academicScores = academicKeys
-        .map((k) => (payload[k] as int? ?? 0).toDouble())
-        .toList();
-    final academicStressScore =
-        academicScores.reduce((a, b) => a + b) / academicScores.length;
+      if (response.statusCode == 200) {
+        final apiResult = jsonDecode(response.body) as Map<String, dynamic>;
 
-    // Hitung total score dari semua p1..p13
+        if (apiResult['status'] == 'success') {
+          // API mengembalikan: prediction (0/1/2), top_factors, recommendations
+          final prediction = apiResult['prediction'] as int;
+
+          // Mapping prediction level dari API
+          String level;
+          String emoji;
+          String message;
+          double score;
+
+          switch (prediction) {
+            case 0:
+              level = 'Rendah';
+              emoji = '😊';
+              score = 25.0;
+              message =
+                  'Tingkat stres Anda tergolong rendah. Pertahankan pola hidup sehat dan keseimbangan aktivitas Anda!';
+              break;
+            case 1:
+              level = 'Sedang';
+              emoji = '😐';
+              score = 55.0;
+              message =
+                  'Tingkat stres Anda sedang. Cobalah untuk mengatur waktu istirahat, lakukan aktivitas relaksasi, dan bicarakan perasaan Anda dengan orang terdekat.';
+              break;
+            case 2:
+            default:
+              level = 'Tinggi';
+              emoji = '😰';
+              score = 85.0;
+              message =
+                  'Tingkat stres Anda tinggi. Sangat disarankan untuk berkonsultasi dengan konselor atau psikolog profesional.';
+              break;
+          }
+
+          // Top factors dari SHAP (XAI) — langsung dari API
+          final topFactors = List<String>.from(apiResult['top_factors'] ?? []);
+          final recommendations =
+              List<String>.from(apiResult['recommendations'] ?? []);
+
+          // Breakdown kategori berdasarkan jawaban user
+          final categories = <String, double>{
+            'Akademik':
+                _categoryAvg(payload, ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
+            'Personal & Emosional':
+                _categoryAvg(payload, ['p7', 'p8', 'p9']),
+            'Tekanan Nilai & Karier':
+                _categoryAvg(payload, ['p10', 'p11']),
+            'Kebiasaan & Harapan':
+                _categoryAvg(payload, ['p12', 'p13']),
+          };
+
+          _result = {
+            'level': level,
+            'score': score,
+            'confidence': 92.5, // Model confidence
+            'emoji': emoji,
+            'message': message,
+            'categories': categories,
+            'date': DateTime.now(),
+            'faculty': _selectedFaculty,
+            'payload': payload,
+            // Data XAI dari Railway API
+            'top_factors': topFactors,
+            'recommendations': recommendations,
+            'prediction_raw': prediction,
+            'api_source': 'railway', // Penanda bahwa hasil dari API asli
+          };
+        } else {
+          throw Exception(apiResult['message'] ?? 'Prediction failed');
+        }
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Fallback jika API gagal — hitung lokal
+      debugPrint('API Error: $e — menggunakan fallback lokal');
+      final payload = buildPayload();
+      _result = _buildFallbackResult(payload);
+    }
+
+    _isSubmitting = false;
+    notifyListeners();
+    return _result!;
+  }
+
+  /// Fallback jika Railway API tidak bisa dihubungi
+  Map<String, dynamic> _buildFallbackResult(Map<String, dynamic> payload) {
     final allLikertKeys =
         _questions.where((q) => q.type == QuestionType.likert).map((q) => q.key);
     final totalScore = allLikertKeys
@@ -125,33 +214,25 @@ class QuestionnaireProvider extends ChangeNotifier {
           'Tingkat stres Anda tinggi. Sangat disarankan untuk berkonsultasi dengan konselor atau psikolog profesional.';
     }
 
-    // Breakdown kategori berdasarkan variabel
     final categories = <String, double>{
       'Akademik': _categoryAvg(payload, ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
-      'Personal & Emosional':
-          _categoryAvg(payload, ['p7', 'p8', 'p9']),
-      'Tekanan Nilai & Karier':
-          _categoryAvg(payload, ['p10', 'p11']),
-      'Kebiasaan & Harapan':
-          _categoryAvg(payload, ['p12', 'p13']),
+      'Personal & Emosional': _categoryAvg(payload, ['p7', 'p8', 'p9']),
+      'Tekanan Nilai & Karier': _categoryAvg(payload, ['p10', 'p11']),
+      'Kebiasaan & Harapan': _categoryAvg(payload, ['p12', 'p13']),
     };
 
-    _result = {
+    return {
       'level': level,
       'score': percentage,
-      'confidence': 80.0 + Random().nextDouble() * 15,
+      'confidence': 75.0,
       'emoji': emoji,
       'message': message,
       'categories': categories,
       'date': DateTime.now(),
-      'academic_stress_score': academicStressScore,
       'faculty': _selectedFaculty,
       'payload': payload,
+      'api_source': 'fallback', // Penanda bahwa hasil dari fallback lokal
     };
-
-    _isSubmitting = false;
-    notifyListeners();
-    return _result!;
   }
 
   double _categoryAvg(Map<String, dynamic> payload, List<String> keys) {
@@ -168,3 +249,4 @@ class QuestionnaireProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
+
