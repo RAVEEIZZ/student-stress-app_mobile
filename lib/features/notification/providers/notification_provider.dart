@@ -55,18 +55,29 @@ class NotificationProvider extends ChangeNotifier {
   ///
   /// [studentId] diambil dari AuthProvider.user!.id.
   Future<void> fetchNotifications(int studentId) async {
+    // Jangan re-fetch kalau sudah ada data (cukup refresh manual)
+    if (_hasFetched && _notifications.isNotEmpty) return;
+
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _notifications = await NotificationService.fetchFollowUps(
+      final result = await NotificationService.fetchFollowUps(
         studentId: studentId,
       );
+
+      // Hanya timpa data kalau API return hasil yang tidak kosong
+      if (result.isNotEmpty) {
+        _notifications = result;
+      }
+      // Kalau API kosong → pertahankan dummy data yang ada di constructor
+
       _hasFetched = true;
       _isLoading = false;
       notifyListeners();
     } on Exception catch (e) {
+      // Kalau error → jangan kosongkan _notifications, cukup simpan pesan error
       _error = e.toString().replaceFirst('Exception: ', '');
       _isLoading = false;
       _hasFetched = true;
@@ -75,7 +86,9 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   /// Refresh notifikasi (pull to refresh).
+  /// Selalu re-fetch dari API, abaikan guard hasFetched.
   Future<void> refresh(int studentId) async {
+    _hasFetched = false; // Reset agar fetchNotifications tidak di-skip
     await fetchNotifications(studentId);
   }
 

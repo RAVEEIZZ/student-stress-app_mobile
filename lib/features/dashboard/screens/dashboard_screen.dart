@@ -6,352 +6,609 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../app/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/stat_card.dart';
-import '../../../core/widgets/decorative_circles.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../history/providers/history_provider.dart';
 import '../providers/dashboard_provider.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      final nim = auth.user?.nim ?? '';
+      if (nim.isNotEmpty) {
+        context.read<HistoryProvider>().fetchHistory(nim);
+      }
+    });
+  }
+
   String _formatDate(DateTime date) {
-    const months = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
-    ];
+    const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     return '${date.day} ${months[date.month]} ${date.year}';
+  }
+
+  String _formatTime(DateTime date) {
+    final h = date.hour.toString().padLeft(2, '0');
+    final m = date.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  Color _levelColor(String level) {
+    switch (level.toLowerCase()) {
+      case 'rendah': case 'low': return AppColors.stressLow;
+      case 'sedang': case 'moderate': return AppColors.stressMedium;
+      case 'tinggi': case 'high': return AppColors.stressHigh;
+      default: return AppColors.primary;
+    }
+  }
+
+  Color _levelBgColor(String level) {
+    switch (level.toLowerCase()) {
+      case 'rendah': case 'low': return AppColors.stressLowBg;
+      case 'sedang': case 'moderate': return AppColors.stressMediumBg;
+      case 'tinggi': case 'high': return AppColors.stressHighBg;
+      default: return AppColors.primary.withOpacity(0.1);
+    }
+  }
+
+  Color _levelTextColor(String level) {
+    switch (level.toLowerCase()) {
+      case 'rendah': case 'low': return const Color(0xFF3A6B00);
+      case 'sedang': case 'moderate': return const Color(0xFFB04C00);
+      case 'tinggi': case 'high': return const Color(0xFF9B1B1B);
+      default: return AppColors.primary;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final history = context.watch<HistoryProvider>();
     final dashboard = context.watch<DashboardProvider>();
 
+    final fullName = auth.user?.nama ?? 'User';
+    final firstName = fullName.split(' ').first;
+    final recentPredictions = history.predictions.take(3).toList();
+    final totalPredictions = history.totalPredictions;
+    final lastLevel = history.predictions.isNotEmpty
+        ? history.predictions.first['level'] as String
+        : '-';
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
       body: Stack(
         children: [
-          const DecorativeCircles(),
+          // Large purple oval top-right
+          Positioned(
+            top: 45,
+            right: -50,
+            child: Container(
+              width: 200,
+              height: 180,
+              decoration: const BoxDecoration(
+                color: Color(0xFF5243C5),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 77,
+            right: 105,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                color: Color(0xFF5243C5),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 92,
+            right: 124,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: const BoxDecoration(
+                color: Color(0xFF5243C5),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+
+          // Purple oval bottom-left
+          Positioned(
+            bottom: 160,
+            left: -50,
+            child: Container(
+              width: 143,
+              height: 134,
+              decoration: const BoxDecoration(
+                color: Color(0xFF806FFF),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Small dots bottom-left
+          Positioned(
+            bottom: 115,
+            left: 55,
+            child: Container(
+              width: 21,
+              height: 20,
+              decoration: const BoxDecoration(
+                color: Color(0xFF5243C5),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 94,
+            left: 72,
+            child: Container(
+              width: 10,
+              height: 9,
+              decoration: const BoxDecoration(
+                color: Color(0xFF5243C5),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+
           SafeArea(
             bottom: false,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 120),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header with greeting & profile
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Halo, ${dashboard.userName.split(' ').first}! 👋',
-                              style: AppTextStyles.heading2,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Bagaimana perasaanmu hari ini?',
-                              style: AppTextStyles.bodySmall.copyWith(fontSize: 14),
-                            ),
-                          ],
-                        ),
+                  // Profile icon
+                  GestureDetector(
+                    onTap: () => context.push(AppRoutes.profile),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2ECFF),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      GestureDetector(
-                        onTap: () => context.push(AppRoutes.profile),
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            gradient: AppColors.primaryGradient,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Center(
-                            child: Text(
-                              dashboard.userName[0].toUpperCase(),
-                              style: AppTextStyles.subtitle1.copyWith(
-                                color: Colors.white,
-                                fontSize: 20,
-                              ),
-                            ),
-                          ),
-                        ),
+                      child: const Icon(
+                        Iconsax.user,
+                        size: 16,
+                        color: Color(0xFF3A3747),
                       ),
-                    ],
-                  ).animate().fadeIn(duration: 400.ms).slideY(
-                        begin: -0.1,
-                        end: 0,
-                        duration: 400.ms,
-                      ),
+                    ),
+                  ),
 
                   const SizedBox(height: 28),
 
-                  // Stats cards
-                  Row(
-                    children: [
-                      Expanded(
-                        child: StatCard(
-                          icon: Iconsax.chart_2,
-                          label: 'Total Prediksi',
-                          value: '${dashboard.totalPredictions}',
-                          iconColor: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: StatCard(
-                          icon: Iconsax.status_up,
-                          label: 'Prediksi Terakhir',
-                          value: dashboard.lastPredictionLevel,
-                          iconColor: AppColors.stressColor(
-                              dashboard.lastPredictionLevel),
-                        ),
-                      ),
-                    ],
-                  ).animate().fadeIn(delay: 200.ms, duration: 400.ms).slideY(
-                        begin: 0.1,
-                        end: 0,
-                        delay: 200.ms,
-                        duration: 400.ms,
-                      ),
+                  // Titles
+                  Text(
+                    'Dashboard',
+                    style: AppTextStyles.heading3.copyWith(fontSize: 20),
+                  ).animate().fadeIn(duration: 300.ms),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Selamat datang, $firstName!',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontSize: 14,
+                      color: const Color(0xFF828282),
+                    ),
+                  ).animate().fadeIn(delay: 80.ms, duration: 300.ms),
 
                   const SizedBox(height: 20),
 
-                  // CTA Card
+                  // ── Stat Cards ──────────────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 141,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0x1E898989)),
+                          ),
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE0E7FF),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(
+                                  Iconsax.document_text,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                'Total Prediksi',
+                                style: const TextStyle(
+                                  color: Color(0xFF676767),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '$totalPredictions',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Container(
+                          height: 141,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0x1E898989)),
+                          ),
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 35,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDBFCE7),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(
+                                  Iconsax.tick_circle,
+                                  size: 18,
+                                  color: Color(0xFF22C55E),
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                'Prediksi Terakhir',
+                                style: const TextStyle(
+                                  color: Color(0xFF676767),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              if (lastLevel == '-')
+                                Text(
+                                  'Belum ada',
+                                  style: AppTextStyles.caption,
+                                )
+                              else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: _levelBgColor(lastLevel),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    lastLevel,
+                                    style: TextStyle(
+                                      color: _levelTextColor(lastLevel),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ).animate().fadeIn(delay: 120.ms, duration: 350.ms),
+
+                  const SizedBox(height: 14),
+
+                  // ── CTA Card ────────────────────────────────────────
                   GestureDetector(
                     onTap: () => context.go(AppRoutes.questionnaire),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        gradient: AppColors.primaryGradient,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
-                            blurRadius: 24,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0x21737373)),
                       ),
                       child: Row(
                         children: [
+                          Container(
+                            width: 32,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE0E7FF),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(
+                              Iconsax.add_circle,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Mulai Prediksi',
-                                  style: AppTextStyles.heading3.copyWith(
-                                    color: Colors.white,
+                                const Text(
+                                  'Isi Kuesioner Baru',
+                                  style: TextStyle(
+                                    color: Color(0xFF242424),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Isi kuesioner untuk mengetahui\ntingkat stres Anda saat ini',
-                                  style: AppTextStyles.bodySmall.copyWith(
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontSize: 13,
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'Prediksi tingkat stres Anda',
+                                  style: TextStyle(
+                                    color: Color(0xFF9896A8),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(
-                              Iconsax.clipboard_tick,
-                              color: Colors.white,
-                              size: 26,
-                            ),
+                          const Icon(
+                            Iconsax.arrow_right_3,
+                            size: 16,
+                            color: Color(0xFF9896A8),
                           ),
                         ],
                       ),
                     ),
-                  ).animate().fadeIn(delay: 300.ms, duration: 400.ms).slideY(
-                        begin: 0.1,
-                        end: 0,
-                        delay: 300.ms,
-                        duration: 400.ms,
-                      ),
+                  ).animate().fadeIn(delay: 160.ms, duration: 350.ms),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 14),
 
-                  // Insight Card
+                  // ── Insight Card ────────────────────────────────────
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
-                      color: AppColors.stressBgColor(
-                          dashboard.lastPredictionLevel),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: AppColors.stressColor(
-                                dashboard.lastPredictionLevel)
-                            .withOpacity(0.2),
-                      ),
+                      border: Border.all(color: const Color(0x21737373)),
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: AppColors.stressColor(
-                                    dashboard.lastPredictionLevel)
-                                .withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(
-                            Iconsax.lamp_charge,
-                            color: AppColors.stressColor(
-                                dashboard.lastPredictionLevel),
-                            size: 22,
-                          ),
+                        const Icon(
+                          Iconsax.star_1,
+                          size: 16,
+                          color: AppColors.primary,
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Insight',
-                                style: AppTextStyles.subtitle2.copyWith(
-                                  color: AppColors.stressColor(
-                                      dashboard.lastPredictionLevel),
-                                  fontWeight: FontWeight.w700,
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                dashboard.insightMessage,
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  height: 1.5,
-                                ),
-                              ),
+                              _buildInsightRichText(lastLevel, dashboard),
                             ],
                           ),
                         ),
                       ],
                     ),
-                  ).animate().fadeIn(delay: 400.ms, duration: 400.ms),
+                  ).animate().fadeIn(delay: 200.ms, duration: 350.ms),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
 
-                  // Recent Predictions
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Riwayat Terbaru', style: AppTextStyles.subtitle1),
-                      TextButton(
-                        onPressed: () => context.go(AppRoutes.history),
-                        child: Text(
-                          'Lihat Semua',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
+                  // ── Prediksi Terbaru ────────────────────────────────
+                  const Text(
+                    'Prediksi Terbaru',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
 
-                  ...dashboard.recentPredictions.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final pred = entry.value;
-                    final color = AppColors.stressColor(pred['level']);
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: GestureDetector(
-                        onTap: () => context.push(
-                          AppRoutes.detailPrediction,
-                          extra: pred,
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.shadow,
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                  if (history.isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (recentPredictions.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 28),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: const Color(0x216D6D6D)),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Iconsax.chart_1,
+                              color: AppColors.textHint, size: 36),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Belum ada riwayat prediksi',
+                            style: AppTextStyles.bodySmall
+                                .copyWith(color: AppColors.textHint),
                           ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: color.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Icon(
-                                  Iconsax.chart_1,
-                                  color: color,
-                                  size: 22,
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                        ],
+                      ),
+                    )
+                  else
+                    ...recentPredictions.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final pred = entry.value;
+                      final level = pred['level'] as String;
+                      final date = pred['date'] as DateTime;
+                      final confidence = pred['confidence'] as double;
+                      final dotColor = _levelColor(level);
+                      final badgeBg = _levelBgColor(level);
+                      final badgeText = _levelTextColor(level);
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: GestureDetector(
+                          onTap: () => context.push(
+                            AppRoutes.detailPrediction,
+                            extra: pred,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                  color: const Color(0x216D6D6D)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      'Stres ${pred['level']}',
-                                      style: AppTextStyles.subtitle2.copyWith(
-                                        color: AppColors.textPrimary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Tanggal',
+                                          style: TextStyle(
+                                            color: Color(0xFF6A6A6A),
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${_formatDate(date)}   ${_formatTime(date)}',
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      _formatDate(pred['date']),
-                                      style: AppTextStyles.caption,
+                                    // Level badge with dot
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: badgeBg,
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: 5,
+                                            height: 5,
+                                            decoration: BoxDecoration(
+                                              color: dotColor,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            level,
+                                            style: TextStyle(
+                                              color: badgeText,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '${(pred['score'] as double).toStringAsFixed(1)}%',
-                                    style: AppTextStyles.subtitle1.copyWith(
-                                      color: color,
+                                const SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Confidence',
+                                          style: TextStyle(
+                                            color: Color(0xFF6A6A6A),
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${confidence.toStringAsFixed(2)}%',
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  Text(
-                                    'Conf: ${(pred['confidence'] as double).toStringAsFixed(0)}%',
-                                    style: AppTextStyles.caption,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                Iconsax.arrow_right_3,
-                                color: AppColors.textHint,
-                                size: 18,
-                              ),
-                            ],
+                                    const Text(
+                                      'Lihat Detail',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ).animate().fadeIn(
-                          delay: (500 + index * 100).ms,
-                          duration: 400.ms,
-                        );
-                  }),
+                      ).animate().fadeIn(
+                            delay: (250 + index * 80).ms,
+                            duration: 350.ms,
+                          );
+                    }),
                 ],
               ),
             ),
@@ -359,5 +616,68 @@ class DashboardScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildInsightRichText(String level, DashboardProvider dashboard) {
+    if (level == '-') {
+      return const Text(
+        'Lakukan prediksi pertama Anda untuk mendapatkan insight.',
+        style: TextStyle(
+          color: Color(0xFF979696),
+          fontSize: 8,
+          fontWeight: FontWeight.w500,
+          height: 1.5,
+        ),
+      );
+    }
+
+    final levelColor = _levelColor(level);
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          const TextSpan(
+            text: 'Berdasarkan data terakhir, tingkat stres Anda berada di kategori ',
+            style: TextStyle(
+              color: Color(0xFF979696),
+              fontSize: 8,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          TextSpan(
+            text: level,
+            style: TextStyle(
+              color: levelColor,
+              fontSize: 8,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          TextSpan(
+            text: '. ${_insightSuffix(level)}',
+            style: const TextStyle(
+              color: Color(0xFF979696),
+              fontSize: 8,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _insightSuffix(String level) {
+    switch (level.toLowerCase()) {
+      case 'rendah':
+      case 'low':
+        return 'Tetap jaga keseimbangan aktivitas dan istirahat. 🌟';
+      case 'sedang':
+      case 'moderate':
+        return 'Cobalah untuk mengatur jadwal belajar dan luangkan waktu untuk istirahat.';
+      case 'tinggi':
+      case 'high':
+        return 'Sangat disarankan untuk berkonsultasi dengan konselor profesional. ⚠️';
+      default:
+        return '';
+    }
   }
 }
