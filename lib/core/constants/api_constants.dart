@@ -1,9 +1,14 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// Konstanta API untuk koneksi ke backend.
 class ApiConstants {
   ApiConstants._();
 
   /// Base URL Laravel API server (auth, follow-ups)
-  static const String baseUrl = 'http://192.168.40.89:8000';
+  /// 10.0.2.2 untuk Android emulator, localhost untuk web/desktop
+  static String get baseUrl => kIsWeb 
+      ? 'http://192.168.100.144:8000' 
+      : 'http://192.168.100.144:8000';
 
   /// Base URL FastAPI Prediction server (Railway)
   static const String predictionBaseUrl = 'https://stress-api-deploy-production.up.railway.app';

@@ -111,4 +111,12 @@ class HistoryProvider extends ChangeNotifier {
         return itemLevel == targetLevel;
     }
   }
+
+  void addPrediction(Map<String, dynamic> prediction) {
+    _predictions.insert(0, {
+      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      ...prediction,
+    });
+    notifyListeners();
+  }
 }

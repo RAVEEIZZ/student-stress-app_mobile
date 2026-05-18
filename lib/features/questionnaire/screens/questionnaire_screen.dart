@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/gradient_button.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../history/providers/history_provider.dart';
 import '../models/question_model.dart';
 import '../providers/questionnaire_provider.dart';
 
@@ -95,27 +96,6 @@ class QuestionnaireQuestionsScreen extends StatelessWidget {
 
                 const SizedBox(height: 32),
 
-                // Label badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    question.label,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
                 // Question card
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -173,6 +153,8 @@ class QuestionnaireQuestionsScreen extends StatelessWidget {
                               final result = await provider.submitAnswers(nim: nim);
 
                               if (context.mounted) {
+                                // Update history
+                                context.read<HistoryProvider>().addPrediction(result);
                                 context.go(AppRoutes.result, extra: result);
                                 // Reset form kuesioner setelah navigasi
                                 // Agar history di halaman input kosong kembali
