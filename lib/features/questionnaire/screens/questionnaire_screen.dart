@@ -7,6 +7,7 @@ import '../../../app/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/gradient_button.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/question_model.dart';
 import '../providers/questionnaire_provider.dart';
 
@@ -164,9 +165,18 @@ class QuestionnaireQuestionsScreen extends StatelessWidget {
                     onPressed: provider.canGoNext()
                         ? () async {
                             if (provider.isLastQuestion) {
-                              final result = await provider.submitAnswers();
+                              // Ambil NIM dari AuthProvider
+                              final authProvider = context.read<AuthProvider>();
+                              final nim = authProvider.user?.nim ?? '';
+
+                              // Double Post: Railway → Laravel
+                              final result = await provider.submitAnswers(nim: nim);
+
                               if (context.mounted) {
                                 context.go(AppRoutes.result, extra: result);
+                                // Reset form kuesioner setelah navigasi
+                                // Agar history di halaman input kosong kembali
+                                provider.reset();
                               }
                             } else {
                               provider.nextQuestion();

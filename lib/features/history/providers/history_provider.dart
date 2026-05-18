@@ -1,68 +1,114 @@
 import 'package:flutter/material.dart';
+import '../../../core/services/stress_result_service.dart';
 
+/// Provider untuk mengelola riwayat prediksi stres.
+///
+/// Data diambil dari Laravel API berdasarkan NIM mahasiswa yang login.
+/// History di mobile kosong sampai user melakukan prediksi baru.
 class HistoryProvider extends ChangeNotifier {
-  List<Map<String, dynamic>> get predictions => [
-    {
-      'id': '1',
-      'date': DateTime.now().subtract(const Duration(days: 1)),
-      'level': 'Sedang',
-      'score': 65.4,
-      'confidence': 87.2,
-      'categories': {'Akademik': 72.0, 'Fisik': 55.0, 'Psikologis': 68.0, 'Sosial': 60.0},
-    },
-    {
-      'id': '2',
-      'date': DateTime.now().subtract(const Duration(days: 5)),
-      'level': 'Rendah',
-      'score': 32.1,
-      'confidence': 91.5,
-      'categories': {'Akademik': 35.0, 'Fisik': 28.0, 'Psikologis': 30.0, 'Sosial': 25.0},
-    },
-    {
-      'id': '3',
-      'date': DateTime.now().subtract(const Duration(days: 12)),
-      'level': 'Tinggi',
-      'score': 82.7,
-      'confidence': 85.3,
-      'categories': {'Akademik': 88.0, 'Fisik': 75.0, 'Psikologis': 85.0, 'Sosial': 72.0},
-    },
-    {
-      'id': '4',
-      'date': DateTime.now().subtract(const Duration(days: 20)),
-      'level': 'Sedang',
-      'score': 58.2,
-      'confidence': 88.9,
-      'categories': {'Akademik': 62.0, 'Fisik': 50.0, 'Psikologis': 60.0, 'Sosial': 55.0},
-    },
-    {
-      'id': '5',
-      'date': DateTime.now().subtract(const Duration(days: 30)),
-      'level': 'Rendah',
-      'score': 28.5,
-      'confidence': 92.1,
-      'categories': {'Akademik': 30.0, 'Fisik': 22.0, 'Psikologis': 32.0, 'Sosial': 20.0},
-    },
-    {
-      'id': '6',
-      'date': DateTime.now().subtract(const Duration(days: 45)),
-      'level': 'Sedang',
-      'score': 55.0,
-      'confidence': 86.7,
-      'categories': {'Akademik': 58.0, 'Fisik': 48.0, 'Psikologis': 62.0, 'Sosial': 45.0},
-    },
-    {
-      'id': '7',
-      'date': DateTime.now().subtract(const Duration(days: 60)),
-      'level': 'Tinggi',
-      'score': 78.9,
-      'confidence': 84.1,
-      'categories': {'Akademik': 82.0, 'Fisik': 72.0, 'Psikologis': 80.0, 'Sosial': 70.0},
-    },
-  ];
+  List<Map<String, dynamic>> _predictions = [];
+  bool _isLoading = false;
+  bool _hasFetched = false;
+  String? _error;
 
-  int get totalPredictions => predictions.length;
+  List<Map<String, dynamic>> get predictions => _predictions;
+  bool get isLoading => _isLoading;
+  bool get hasFetched => _hasFetched;
+  String? get error => _error;
 
-  int get lowCount => predictions.where((p) => p['level'] == 'Rendah').length;
-  int get mediumCount => predictions.where((p) => p['level'] == 'Sedang').length;
-  int get highCount => predictions.where((p) => p['level'] == 'Tinggi').length;
+  int get totalPredictions => _predictions.length;
+
+  int get lowCount =>
+      _predictions.where((p) => _isLevel(p, 'low')).length;
+  int get mediumCount =>
+      _predictions.where((p) => _isLevel(p, 'moderate')).length;
+  int get highCount =>
+      _predictions.where((p) => _isLevel(p, 'high')).length;
+
+  /// Fetch riwayat prediksi dari Laravel API.
+  ///
+  /// [nim] NIM mahasiswa yang login untuk filter data.
+  Future<void> fetchHistory(String nim) async {
+    if (nim.isEmpty) return;
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final data = await StressResultService.fetchHistory(nim);
+
+      // Transform data dari format Laravel API ke format yang digunakan UI
+      _predictions = data.map((item) {
+        return <String, dynamic>{
+          'id': item['id']?.toString() ?? '',
+          'date': DateTime.tryParse(item['created_at'] ?? '') ?? DateTime.now(),
+          'level': _mapLevelToIndonesian(item['tingkat_stres'] ?? ''),
+          'score': (item['score'] as num?)?.toDouble() ?? 0.0,
+          'confidence': 90.0,
+          'top_factors': item['top_factors'],
+          'recommendation': item['recommendation'],
+          'categories': <String, double>{
+            'Akademik': 0,
+            'Fisik': 0,
+            'Psikologis': 0,
+            'Sosial': 0,
+          },
+        };
+      }).toList();
+
+      _hasFetched = true;
+    } catch (e) {
+      _error = 'Gagal memuat riwayat: $e';
+      debugPrint('❌ HistoryProvider fetch error: $e');
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Refresh data (pull-to-refresh)
+  Future<void> refresh(String nim) async {
+    await fetchHistory(nim);
+  }
+
+  /// Kosongkan riwayat lokal (setelah reset form).
+  void clear() {
+    _predictions = [];
+    _hasFetched = false;
+    _error = null;
+    notifyListeners();
+  }
+
+  /// Map level dari API (English) ke Bahasa Indonesia untuk UI.
+  String _mapLevelToIndonesian(String level) {
+    switch (level.toLowerCase()) {
+      case 'low':
+        return 'Rendah';
+      case 'moderate':
+        return 'Sedang';
+      case 'high':
+        return 'Tinggi';
+      default:
+        return level;
+    }
+  }
+
+  /// Cek apakah item cocok dengan level tertentu (case-insensitive).
+  bool _isLevel(Map<String, dynamic> p, String level) {
+    final itemLevel = (p['level'] ?? '').toString().toLowerCase();
+    final targetLevel = level.toLowerCase();
+
+    // Support both Indonesian and English level names
+    switch (targetLevel) {
+      case 'low':
+        return itemLevel == 'low' || itemLevel == 'rendah';
+      case 'moderate':
+        return itemLevel == 'moderate' || itemLevel == 'sedang';
+      case 'high':
+        return itemLevel == 'high' || itemLevel == 'tinggi';
+      default:
+        return itemLevel == targetLevel;
+    }
+  }
 }

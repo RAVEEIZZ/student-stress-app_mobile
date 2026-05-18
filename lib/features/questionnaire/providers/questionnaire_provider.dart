@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/constants/api_constants.dart';
+import '../../../core/services/stress_result_service.dart';
 import '../models/question_model.dart';
 
 class QuestionnaireProvider extends ChangeNotifier {
@@ -11,6 +12,7 @@ class QuestionnaireProvider extends ChangeNotifier {
   int _currentIndex = 0;
   bool _isSubmitting = false;
   Map<String, dynamic>? _result;
+  bool _savedToLaravel = false;
 
   List<QuestionModel> get questions => _questions;
   int get currentIndex => _currentIndex;
@@ -20,6 +22,7 @@ class QuestionnaireProvider extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   Map<String, dynamic>? get result => _result;
   String? get selectedFaculty => _selectedFaculty;
+  bool get savedToLaravel => _savedToLaravel;
 
   int? getLikertAnswer(int questionId) => _likertAnswers[questionId];
 
@@ -80,14 +83,24 @@ class QuestionnaireProvider extends ChangeNotifier {
     return payload;
   }
 
-  Future<Map<String, dynamic>> submitAnswers() async {
+  /// Submit jawaban kuesioner dengan Double Post:
+  ///
+  /// 1. **Post 1** → Railway FastAPI: kirim kuesioner, terima prediksi
+  /// 2. Tampilkan hasil ke user
+  /// 3. **Post 2** → Laravel API: kirim hasil prediksi untuk monitoring dosen
+  ///
+  /// [nim] diperlukan untuk menyimpan data di Laravel (identifikasi mahasiswa).
+  Future<Map<String, dynamic>> submitAnswers({required String nim}) async {
     _isSubmitting = true;
+    _savedToLaravel = false;
     notifyListeners();
 
     try {
       final payload = buildPayload();
 
-      // === REAL API CALL ke Railway FastAPI ===
+      // ============================================
+      // POST 1: Kirim ke Railway FastAPI (Prediksi)
+      // ============================================
       final response = await http.post(
         Uri.parse(ApiConstants.predictUrl),
         headers: {'Content-Type': 'application/json'},
@@ -103,6 +116,7 @@ class QuestionnaireProvider extends ChangeNotifier {
 
           // Mapping prediction level dari API
           String level;
+          String levelForLaravel;
           String emoji;
           String message;
           double score;
@@ -110,6 +124,7 @@ class QuestionnaireProvider extends ChangeNotifier {
           switch (prediction) {
             case 0:
               level = 'Rendah';
+              levelForLaravel = 'Low';
               emoji = '😊';
               score = 25.0;
               message =
@@ -117,6 +132,7 @@ class QuestionnaireProvider extends ChangeNotifier {
               break;
             case 1:
               level = 'Sedang';
+              levelForLaravel = 'Moderate';
               emoji = '😐';
               score = 55.0;
               message =
@@ -125,6 +141,7 @@ class QuestionnaireProvider extends ChangeNotifier {
             case 2:
             default:
               level = 'Tinggi';
+              levelForLaravel = 'High';
               emoji = '😰';
               score = 85.0;
               message =
@@ -165,6 +182,20 @@ class QuestionnaireProvider extends ChangeNotifier {
             'prediction_raw': prediction,
             'api_source': 'railway', // Penanda bahwa hasil dari API asli
           };
+
+          // ============================================
+          // POST 2: Kirim ke Laravel API (Simpan riwayat)
+          // ============================================
+          // Non-blocking: jika gagal, user tetap bisa lihat hasil.
+          // Dosen wali akan bisa lihat data ini di web monitoring.
+          _sendToLaravel(
+            nim: nim,
+            tingkatStres: levelForLaravel,
+            topFactors: topFactors,
+            recommendations: recommendations,
+            predictionRaw: prediction,
+            score: score,
+          );
         } else {
           throw Exception(apiResult['message'] ?? 'Prediction failed');
         }
@@ -176,11 +207,69 @@ class QuestionnaireProvider extends ChangeNotifier {
       debugPrint('API Error: $e — menggunakan fallback lokal');
       final payload = buildPayload();
       _result = _buildFallbackResult(payload);
+
+      // Tetap coba kirim ke Laravel meskipun pakai fallback
+      if (nim.isNotEmpty) {
+        final level = _result!['level'] as String;
+        String levelForLaravel;
+        switch (level) {
+          case 'Rendah':
+            levelForLaravel = 'Low';
+            break;
+          case 'Sedang':
+            levelForLaravel = 'Moderate';
+            break;
+          default:
+            levelForLaravel = 'High';
+        }
+        _sendToLaravel(
+          nim: nim,
+          tingkatStres: levelForLaravel,
+          topFactors: null,
+          recommendations: null,
+          predictionRaw: null,
+          score: (_result!['score'] as num).toDouble(),
+        );
+      }
     }
 
     _isSubmitting = false;
     notifyListeners();
     return _result!;
+  }
+
+  /// Kirim hasil prediksi ke Laravel secara async (non-blocking).
+  Future<void> _sendToLaravel({
+    required String nim,
+    required String tingkatStres,
+    List<String>? topFactors,
+    List<String>? recommendations,
+    int? predictionRaw,
+    double? score,
+  }) async {
+    try {
+      // Gabung recommendations menjadi satu string untuk kolom text
+      String? recommendationText;
+      if (recommendations != null && recommendations.isNotEmpty) {
+        recommendationText = recommendations.join('\n• ');
+        recommendationText = '• $recommendationText';
+      }
+
+      final success = await StressResultService.sendPrediction(
+        nim: nim,
+        tingkatStres: tingkatStres,
+        topFactors: topFactors,
+        recommendation: recommendationText,
+        predictionRaw: predictionRaw,
+        score: score,
+      );
+
+      _savedToLaravel = success;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error in _sendToLaravel: $e');
+      _savedToLaravel = false;
+    }
   }
 
   /// Fallback jika Railway API tidak bisa dihubungi
@@ -246,7 +335,7 @@ class QuestionnaireProvider extends ChangeNotifier {
     _likertAnswers.clear();
     _selectedFaculty = null;
     _result = null;
+    _savedToLaravel = false;
     notifyListeners();
   }
 }
-
