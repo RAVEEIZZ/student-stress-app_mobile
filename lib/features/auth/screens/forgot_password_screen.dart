@@ -17,18 +17,40 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
     _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   void _handleSendReset() async {
-    if (_emailController.text.trim().isEmpty) {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
        ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Email harus diisi'),
+          content: const Text('Semua field harus diisi'),
+          backgroundColor: AppColors.stressHigh,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Password dan konfirmasi tidak cocok'),
           backgroundColor: AppColors.stressHigh,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -38,9 +60,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     final auth = context.read<AuthProvider>();
-    final success = await auth.forgotPassword(_emailController.text.trim());
+    final success = await auth.resetPassword(email, password, confirmPassword);
     if (success && mounted) {
       context.go(AppRoutes.resetSuccess);
+    } else if (mounted && auth.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.error!),
+          backgroundColor: AppColors.stressHigh,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
     }
   }
 
@@ -158,7 +189,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                           // Description
                           Text(
-                            'Masukkan alamat email yang terdaftar. Kami akan mengirimkan instruksi untuk mengatur ulang password kamu.',
+                            'Masukkan email kamu beserta password baru. Password kamu akan langsung diubah.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.black,
@@ -178,6 +209,34 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             icon: Iconsax.sms,
                             keyboardType: TextInputType.emailAddress,
                           ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
+
+                          const SizedBox(height: 16),
+
+                          // Password field
+                          _buildPasswordField(
+                            controller: _passwordController,
+                            hint: 'Password Baru',
+                            obscureText: _obscurePassword,
+                            onToggleVisibility: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ).animate().fadeIn(delay: 250.ms, duration: 400.ms),
+
+                          const SizedBox(height: 16),
+
+                          // Confirm Password field
+                          _buildPasswordField(
+                            controller: _confirmPasswordController,
+                            hint: 'Konfirmasi Password Baru',
+                            obscureText: _obscureConfirmPassword,
+                            onToggleVisibility: () {
+                              setState(() {
+                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                              });
+                            },
+                          ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
 
                           const SizedBox(height: 24),
 
@@ -199,9 +258,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                                         )
                                       : const Text(
-                                          'Kirim',
+                                          'Simpan Password',
                                           style: TextStyle(
-                                            color: Colors.white, fontSize: 18,
+                                            color: Colors.white, fontSize: 16,
                                             fontWeight: FontWeight.w700, letterSpacing: -0.3,
                                           ),
                                         ),
@@ -252,6 +311,52 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             fontWeight: FontWeight.w600, letterSpacing: -0.3,
           ),
           prefixIcon: Icon(icon, color: const Color(0xFFBABABA), size: 18),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String hint,
+    required bool obscureText,
+    required VoidCallback onToggleVisibility,
+  }) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.90),
+        borderRadius: BorderRadius.circular(13),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        style: AppTextStyles.body.copyWith(fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(
+            color: Color(0xFFBABABA), fontSize: 13,
+            fontWeight: FontWeight.w600, letterSpacing: -0.3,
+          ),
+          prefixIcon: const Icon(Iconsax.lock, color: Color(0xFFBABABA), size: 18),
+          suffixIcon: GestureDetector(
+            onTap: onToggleVisibility,
+            child: Icon(
+              obscureText ? Iconsax.eye_slash : Iconsax.eye,
+              color: const Color(0xFFBABABA),
+              size: 18,
+            ),
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),

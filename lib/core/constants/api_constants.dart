@@ -16,6 +16,7 @@ class ApiConstants {
   /// Endpoint paths — Laravel
   static const String loginEndpoint = '/api/login';
   static const String registerEndpoint = '/api/register';
+  static const String resetPasswordEndpoint = '/api/reset-password';
   static const String followUpsEndpoint = '/api/follow-ups';
   static const String stressResultsEndpoint = '/api/stress-results';
 
@@ -25,6 +26,7 @@ class ApiConstants {
   /// Full URLs — Laravel (Auth & Data)
   static String get loginUrl => '$baseUrl$loginEndpoint';
   static String get registerUrl => '$baseUrl$registerEndpoint';
+  static String get resetPasswordUrl => '$baseUrl$resetPasswordEndpoint';
   static String get followUpsUrl => '$baseUrl$followUpsEndpoint';
   static String get stressResultsUrl => '$baseUrl$stressResultsEndpoint';
 
