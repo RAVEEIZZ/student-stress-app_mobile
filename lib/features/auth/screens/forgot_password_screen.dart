@@ -17,6 +17,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
+  final _nimController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
@@ -25,6 +26,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   void dispose() {
     _emailController.dispose();
+    _nimController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -32,10 +34,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _handleSendReset() async {
     final email = _emailController.text.trim();
+    final nim = _nimController.text.trim();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
-    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (email.isEmpty || nim.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
        ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Semua field harus diisi'),
@@ -60,7 +63,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     final auth = context.read<AuthProvider>();
-    final success = await auth.resetPassword(email, password, confirmPassword);
+    final success = await auth.resetPassword(email, nim, password, confirmPassword);
     if (success && mounted) {
       context.go(AppRoutes.resetSuccess);
     } else if (mounted && auth.error != null) {
@@ -212,6 +215,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                           const SizedBox(height: 16),
 
+                          // NIM field
+                          _buildInputField(
+                            controller: _nimController,
+                            hint: 'NIM',
+                            icon: Iconsax.card,
+                            keyboardType: TextInputType.number,
+                          ).animate().fadeIn(delay: 225.ms, duration: 400.ms),
+
+                          const SizedBox(height: 16),
+
                           // Password field
                           _buildPasswordField(
                             controller: _passwordController,
@@ -258,7 +271,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                                         )
                                       : const Text(
-                                          'Simpan Password',
+                                          'Reset Password',
                                           style: TextStyle(
                                             color: Colors.white, fontSize: 16,
                                             fontWeight: FontWeight.w700, letterSpacing: -0.3,
@@ -314,7 +327,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
-      ),
       ),
     );
   }

@@ -148,7 +148,7 @@ class ResetSuccessScreen extends StatelessWidget {
                   const SizedBox(height: 32),
 
                   Text(
-                    'Email Terkirim!',
+                    'Password Berhasil Diubah!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: const Color(0xFF595BD4),
@@ -161,7 +161,7 @@ class ResetSuccessScreen extends StatelessWidget {
                   const SizedBox(height: 12),
 
                   Text(
-                    'Silakan cek kotak masuk email kamu untuk\ninstruksi pengaturan ulang kata sandi',
+                    'Password kamu sudah berhasil diubah.\nSilakan login dengan password baru.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: const Color(0xFF7D7D7D),

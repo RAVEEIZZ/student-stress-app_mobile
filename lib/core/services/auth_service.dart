@@ -98,6 +98,7 @@ class AuthService {
   /// Reset Password langsung (tanpa link email).
   static Future<Map<String, dynamic>> resetPassword({
     required String email,
+    required String nim,
     required String password,
     required String passwordConfirmation,
   }) async {
@@ -111,6 +112,7 @@ class AuthService {
             },
             body: jsonEncode({
               'email': email,
+              'nim': nim,
               'password': password,
               'password_confirmation': passwordConfirmation,
             }),
