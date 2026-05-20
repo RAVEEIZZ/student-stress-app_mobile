@@ -274,7 +274,7 @@ class DetailPredictionScreen extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Skor:  ${score.toStringAsFixed(0)}/100',
+                                        'Skor:  ${score.toStringAsFixed(1)}/100',
                                         style: TextStyle(
                                           color: Colors.white.withOpacity(0.78),
                                           fontSize: 10,

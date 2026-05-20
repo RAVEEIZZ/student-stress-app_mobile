@@ -288,28 +288,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         badgeDotColor = const Color(0xFFFFC004); // Bright Orange Dot
                         displayLevel = 'Sedang';
                       } else {
-                        badgeBgColor = const Color(0xFFFEE2E2); // Light Red
+                          badgeBgColor = const Color(0xFFFEE2E2); // Light Red
                         badgeTextColor = const Color(0xFF991B1B); // Dark Red
                         badgeDotColor = const Color(0xFFEF4444); // Bright Red Dot
                         displayLevel = 'Tinggi';
                       }
 
-                      // Score calculation (Sum / 65)
-                      final payload = pred['payload'] as Map<String, dynamic>?;
-                      int sumScore = 0;
-                      if (payload != null) {
-                        for (int i = 1; i <= 13; i++) {
-                          sumScore += (payload['p$i'] as int? ?? 0);
-                        }
-                      } else {
-                        final scorePercentage = (pred['score'] as num?)?.toDouble() ?? 0.0;
-                        sumScore = ((scorePercentage / 100) * 65).round();
-                      }
+                      // Score percentage (0-100)
+                      final scorePercentage = (pred['score'] as num?)?.toDouble() ?? 0.0;
 
                       final confidenceVal = (pred['confidence'] as num?)?.toDouble() ?? 92.5;
 
                       return Container(
-                        height: 97,
+                        height: 110,
                         width: double.infinity,
                         decoration: ShapeDecoration(
                           color: Colors.white,
@@ -354,8 +345,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   ),
                                   // Status Badge matching Figma dot style
                                   Container(
-                                    height: 20,
-                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
                                     decoration: ShapeDecoration(
                                       color: badgeBgColor,
                                       shape: RoundedRectangleBorder(
@@ -364,6 +357,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
                                         Container(
                                           width: 5,
@@ -381,6 +375,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                             fontSize: 10,
                                             fontWeight: FontWeight.w500,
                                           ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Skor',
+                                              style: GoogleFonts.openSans(
+                                                color: const Color(0xFFA2A2A2),
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '${scorePercentage.toStringAsFixed(1)}/100',
+                                              style: GoogleFonts.openSans(
+                                                color: Colors.black,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -427,30 +446,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(width: 32),
-                                      // Score Column
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Skor',
-                                            style: GoogleFonts.openSans(
-                                              color: const Color(0xFFA2A2A2),
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            '$sumScore/65',
-                                            style: GoogleFonts.openSans(
-                                              color: Colors.black,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+
                                     ],
                                   ),
                                   // Detail click button

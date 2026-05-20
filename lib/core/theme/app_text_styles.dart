@@ -50,6 +50,8 @@ class AppTextStyles {
     height: 1.5,
   );
 
+  static TextStyle bodyMedium = bodyLarge;
+
   static TextStyle body = GoogleFonts.openSans(
     fontSize: 14,
     fontWeight: FontWeight.w400,
