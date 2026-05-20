@@ -28,8 +28,15 @@ class DetailPredictionScreen extends StatelessWidget {
     final confidence = (data['confidence'] as num?)?.toDouble() ?? 0;
     final color = AppColors.stressColor(level);
     final bgColor = AppColors.stressBgColor(level);
-    final categories = data['categories'] as Map<String, double>? ??
-        {'Akademik': 45, 'Fisik': 35, 'Psikologis': 55, 'Sosial': 30};
+    final Map<String, double> categories = {};
+    final rawCategories = data['categories'];
+    if (rawCategories is Map) {
+      rawCategories.forEach((key, value) {
+        categories[key.toString()] = (value as num).toDouble();
+      });
+    } else {
+      categories.addAll({'Akademik': 0, 'Fisik': 0, 'Psikologis': 0, 'Sosial': 0});
+    }
     final date = data['date'] is DateTime ? data['date'] as DateTime : DateTime.now();
     final recommendations = PredictionModel.getRecommendations(level);
 
@@ -196,7 +203,7 @@ class DetailPredictionScreen extends StatelessWidget {
                                                       AppColors.textPrimary),
                                         ),
                                         Text(
-                                          '${cat.value.toStringAsFixed(0)}%',
+                                          '${cat.value.toStringAsFixed(1)}%',
                                           style:
                                               AppTextStyles.subtitle2.copyWith(
                                             color: catColor,

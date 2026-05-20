@@ -110,23 +110,25 @@ class QuestionnaireProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final apiResult = jsonDecode(response.body) as Map<String, dynamic>;
 
+        debugPrint('🔍 Raw API response: ${response.body}');
+
         if (apiResult['status'] == 'success') {
-          // API mengembalikan: prediction (0/1/2), top_factors, recommendations
-          final prediction = apiResult['prediction'] as int;
+          // Safe parsing: gunakan num→int agar tidak crash kalau API return double
+          final prediction = (apiResult['prediction'] as num?)?.toInt() ?? 0;
+
+          debugPrint('🔍 Parsed prediction=$prediction, score=${apiResult['score']}, confidence=${apiResult['confidence']}');
 
           // Mapping prediction level dari API
           String level;
           String levelForLaravel;
           String emoji;
           String message;
-          double score;
 
           switch (prediction) {
             case 0:
               level = 'Rendah';
               levelForLaravel = 'Low';
               emoji = '😊';
-              score = 25.0;
               message =
                   'Tingkat stres Anda tergolong rendah. Pertahankan pola hidup sehat dan keseimbangan aktivitas Anda!';
               break;
@@ -134,7 +136,6 @@ class QuestionnaireProvider extends ChangeNotifier {
               level = 'Sedang';
               levelForLaravel = 'Moderate';
               emoji = '😐';
-              score = 55.0;
               message =
                   'Tingkat stres Anda sedang. Cobalah untuk mengatur waktu istirahat, lakukan aktivitas relaksasi, dan bicarakan perasaan Anda dengan orang terdekat.';
               break;
@@ -143,7 +144,6 @@ class QuestionnaireProvider extends ChangeNotifier {
               level = 'Tinggi';
               levelForLaravel = 'High';
               emoji = '😰';
-              score = 85.0;
               message =
                   'Tingkat stres Anda tinggi. Sangat disarankan untuk berkonsultasi dengan konselor atau psikolog profesional.';
               break;
@@ -154,22 +154,70 @@ class QuestionnaireProvider extends ChangeNotifier {
           final recommendations =
               List<String>.from(apiResult['recommendations'] ?? []);
 
-          // Breakdown kategori berdasarkan jawaban user
-          final categories = <String, double>{
-            'Akademik':
-                _categoryAvg(payload, ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
-            'Personal & Emosional':
-                _categoryAvg(payload, ['p7', 'p8', 'p9']),
-            'Tekanan Nilai & Karier':
-                _categoryAvg(payload, ['p10', 'p11']),
-            'Kebiasaan & Harapan':
-                _categoryAvg(payload, ['p12', 'p13']),
-          };
+          // Parse score & confidence dari API response (num-safe)
+          // Jika API belum mengirim field ini (versi Railway lama), hitung lokal
+          double apiScore;
+          if (apiResult.containsKey('score') && apiResult['score'] != null) {
+            apiScore = (apiResult['score'] as num).toDouble();
+            debugPrint('✅ Score dari API: $apiScore');
+          } else {
+            // Hitung lokal: (sum p1..p13 / 65) * 100 — sama seperti main.py
+            final totalSum = ['p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11','p12','p13']
+                .map((k) => (payload[k] as int? ?? 0))
+                .reduce((a, b) => a + b);
+            apiScore = (totalSum / 65) * 100;
+            debugPrint('⚠️ Score dihitung lokal: $apiScore');
+          }
+
+          double apiConfidence;
+          if (apiResult.containsKey('confidence') && apiResult['confidence'] != null) {
+            apiConfidence = (apiResult['confidence'] as num).toDouble();
+            debugPrint('✅ Confidence dari API: $apiConfidence');
+          } else {
+            // Estimasi confidence berdasarkan seberapa jelas prediksi
+            // Logika: semakin jauh score dari batas kelas, semakin yakin
+            if (apiScore < 30 || apiScore > 75) {
+              apiConfidence = 88.0 + (apiScore > 75 ? (apiScore - 75) * 0.4 : (30 - apiScore) * 0.4);
+            } else {
+              apiConfidence = 75.0;
+            }
+            apiConfidence = apiConfidence.clamp(60.0, 99.0);
+            debugPrint('⚠️ Confidence diestimasi lokal: $apiConfidence');
+          }
+
+          // Parse categories dari API atau hitung lokal
+          Map<String, double> categories;
+          final rawCat = apiResult['categories'];
+          if (rawCat != null && rawCat is Map) {
+            categories = {
+              'Akademik': (rawCat['akademik'] as num?)?.toDouble() ?? 0.0,
+              'Fisik': (rawCat['fisik'] as num?)?.toDouble() ?? 0.0,
+              'Psikologis': (rawCat['psikologis'] as num?)?.toDouble() ?? 0.0,
+              'Sosial': (rawCat['sosial'] as num?)?.toDouble() ?? 0.0,
+            };
+            debugPrint('✅ Categories dari API: $categories');
+          } else {
+            // Hitung lokal — sama seperti main.py categories_real
+            final akademik = ((payload['p1'] as int? ?? 0) + (payload['p2'] as int? ?? 0) +
+                (payload['p3'] as int? ?? 0) + (payload['p4'] as int? ?? 0) +
+                (payload['p5'] as int? ?? 0) + (payload['p6'] as int? ?? 0)) / 30 * 100;
+            final fisik = ((payload['p7'] as int? ?? 0) + (payload['p8'] as int? ?? 0)) / 10 * 100;
+            final psikologis = ((payload['p9'] as int? ?? 0) + (payload['p10'] as int? ?? 0) +
+                (payload['p11'] as int? ?? 0)) / 15 * 100;
+            final sosial = ((payload['p12'] as int? ?? 0) + (payload['p13'] as int? ?? 0)) / 10 * 100;
+            categories = {
+              'Akademik': double.parse(akademik.toStringAsFixed(2)),
+              'Fisik': double.parse(fisik.toStringAsFixed(2)),
+              'Psikologis': double.parse(psikologis.toStringAsFixed(2)),
+              'Sosial': double.parse(sosial.toStringAsFixed(2)),
+            };
+            debugPrint('⚠️ Categories dihitung lokal: $categories');
+          }
 
           _result = {
             'level': level,
-            'score': score,
-            'confidence': 92.5, // Model confidence
+            'score': apiScore,
+            'confidence': apiConfidence,
             'emoji': emoji,
             'message': message,
             'categories': categories,
@@ -194,7 +242,9 @@ class QuestionnaireProvider extends ChangeNotifier {
             topFactors: topFactors,
             recommendations: recommendations,
             predictionRaw: prediction,
-            score: score,
+            score: apiScore,
+            confidence: apiConfidence,
+            answers: categories,
           );
         } else {
           throw Exception(apiResult['message'] ?? 'Prediction failed');
@@ -229,6 +279,8 @@ class QuestionnaireProvider extends ChangeNotifier {
           recommendations: null,
           predictionRaw: null,
           score: (_result!['score'] as num).toDouble(),
+          confidence: (_result!['confidence'] as num).toDouble(),
+          answers: _result!['categories'] as Map<String, double>?,
         );
       }
     }
@@ -246,6 +298,8 @@ class QuestionnaireProvider extends ChangeNotifier {
     List<String>? recommendations,
     int? predictionRaw,
     double? score,
+    double? confidence,
+    Map<String, double>? answers,
   }) async {
     try {
       // Gabung recommendations menjadi satu string untuk kolom text
@@ -262,6 +316,8 @@ class QuestionnaireProvider extends ChangeNotifier {
         recommendation: recommendationText,
         predictionRaw: predictionRaw,
         score: score,
+        confidence: confidence,
+        answers: answers,
       );
 
       _savedToLaravel = success;
@@ -305,9 +361,9 @@ class QuestionnaireProvider extends ChangeNotifier {
 
     final categories = <String, double>{
       'Akademik': _categoryAvg(payload, ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
-      'Personal & Emosional': _categoryAvg(payload, ['p7', 'p8', 'p9']),
-      'Tekanan Nilai & Karier': _categoryAvg(payload, ['p10', 'p11']),
-      'Kebiasaan & Harapan': _categoryAvg(payload, ['p12', 'p13']),
+      'Fisik': _categoryAvg(payload, ['p7', 'p8']),
+      'Psikologis': _categoryAvg(payload, ['p9', 'p10', 'p11']),
+      'Sosial': _categoryAvg(payload, ['p12', 'p13']),
     };
 
     return {

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../core/services/stress_result_service.dart';
 
@@ -40,20 +41,38 @@ class HistoryProvider extends ChangeNotifier {
 
       // Transform data dari format Laravel API ke format yang digunakan UI
       _predictions = data.map((item) {
+        Map<String, double> categories = {
+          'Akademik': 0,
+          'Fisik': 0,
+          'Psikologis': 0,
+          'Sosial': 0,
+        };
+        
+        if (item['answers'] != null) {
+          try {
+            final parsed = item['answers'] is String 
+                ? jsonDecode(item['answers']) 
+                : item['answers'];
+                
+            if (parsed is Map) {
+              parsed.forEach((k, v) {
+                categories[k.toString()] = (v as num).toDouble();
+              });
+            }
+          } catch (e) {
+            debugPrint('Error parsing answers in history: $e');
+          }
+        }
+
         return <String, dynamic>{
           'id': item['id']?.toString() ?? '',
           'date': DateTime.tryParse(item['created_at'] ?? '') ?? DateTime.now(),
           'level': _mapLevelToIndonesian(item['tingkat_stres'] ?? ''),
           'score': (item['score'] as num?)?.toDouble() ?? 0.0,
-          'confidence': 90.0,
+          'confidence': (item['confidence'] as num?)?.toDouble() ?? 0.0,
           'top_factors': item['top_factors'],
           'recommendation': item['recommendation'],
-          'categories': <String, double>{
-            'Akademik': 0,
-            'Fisik': 0,
-            'Psikologis': 0,
-            'Sosial': 0,
-          },
+          'categories': categories,
         };
       }).toList();
 

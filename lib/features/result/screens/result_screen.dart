@@ -16,10 +16,10 @@ class ResultScreen extends StatelessWidget {
     final data = predictionData ??
         {
           'level': 'Rendah',
-          'score': 30.0,
-          'confidence': 89.5,
-          'emoji': '😊',
-          'message': 'Tingkat stres Anda rendah. Pertahankan pola hidup sehat!',
+          'score': 0.0,
+          'confidence': 0.0,
+          'emoji': '🤔',
+          'message': 'Data prediksi tidak tersedia.',
         };
 
     final level = data['level'] as String;

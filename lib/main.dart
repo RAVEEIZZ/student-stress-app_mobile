@@ -20,10 +20,18 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => QuestionnaireProvider()),
         ChangeNotifierProvider(create: (_) => HistoryProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProxyProvider<HistoryProvider, DashboardProvider>(
+          create: (context) => DashboardProvider(
+            historyProvider: context.read<HistoryProvider>(),
+          ),
+          update: (context, history, previous) {
+            // Return existing instance — it already listens to HistoryProvider
+            return previous!;
+          },
+        ),
       ],
       child: const StressApp(),
     ),

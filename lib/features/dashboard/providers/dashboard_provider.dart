@@ -1,14 +1,63 @@
 import 'package:flutter/material.dart';
+import '../../history/providers/history_provider.dart';
 
+/// Provider dashboard yang mengambil data dari HistoryProvider (real data).
+///
+/// Tidak lagi menggunakan data hardcoded — semua nilai berasal
+/// dari riwayat prediksi yang sudah disimpan di Laravel.
 class DashboardProvider extends ChangeNotifier {
-  String get userName => 'Raditya';
-  int get totalPredictions => 12;
-  String get lastPredictionLevel => 'Sedang';
-  double get lastPredictionScore => 65.4;
-  double get lastConfidence => 87.2;
-  DateTime get lastPredictionDate => DateTime.now().subtract(const Duration(days: 1));
+  final HistoryProvider _historyProvider;
+  String _userName = '';
+
+  DashboardProvider({required HistoryProvider historyProvider})
+      : _historyProvider = historyProvider {
+    // Listen to changes in HistoryProvider
+    _historyProvider.addListener(_onHistoryChanged);
+  }
+
+  void _onHistoryChanged() {
+    notifyListeners();
+  }
+
+  /// Set nama user dari AuthProvider (dipanggil dari DashboardScreen).
+  void setUserName(String name) {
+    if (_userName != name) {
+      _userName = name;
+      notifyListeners();
+    }
+  }
+
+  String get userName => _userName.isNotEmpty ? _userName : 'Mahasiswa';
+
+  int get totalPredictions => _historyProvider.totalPredictions;
+
+  bool get hasPredictions => _historyProvider.predictions.isNotEmpty;
+
+  String get lastPredictionLevel {
+    if (_historyProvider.predictions.isEmpty) return '-';
+    return _historyProvider.predictions.first['level'] ?? '-';
+  }
+
+  double get lastPredictionScore {
+    if (_historyProvider.predictions.isEmpty) return 0.0;
+    return (_historyProvider.predictions.first['score'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  double get lastConfidence {
+    if (_historyProvider.predictions.isEmpty) return 0.0;
+    return (_historyProvider.predictions.first['confidence'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  DateTime get lastPredictionDate {
+    if (_historyProvider.predictions.isEmpty) return DateTime.now();
+    final date = _historyProvider.predictions.first['date'];
+    return date is DateTime ? date : DateTime.now();
+  }
 
   String get insightMessage {
+    if (!hasPredictions) {
+      return 'Belum ada data prediksi. Lakukan prediksi pertama Anda untuk mendapatkan insight! 📝';
+    }
     switch (lastPredictionLevel.toLowerCase()) {
       case 'rendah':
         return 'Kondisi stres Anda baik! Tetap jaga keseimbangan aktivitas dan istirahat. 🌟';
@@ -17,29 +66,20 @@ class DashboardProvider extends ChangeNotifier {
       case 'tinggi':
         return 'Tingkat stres Anda tinggi. Sangat disarankan untuk berkonsultasi dengan konselor profesional. ⚠️';
       default:
-        return 'Lakukan prediksi pertama Anda untuk mendapatkan insight.';
+        return 'Lakukan prediksi untuk mendapatkan insight.';
     }
   }
 
-  // Recent predictions mock
-  List<Map<String, dynamic>> get recentPredictions => [
-        {
-          'date': DateTime.now().subtract(const Duration(days: 1)),
-          'level': 'Sedang',
-          'score': 65.4,
-          'confidence': 87.2,
-        },
-        {
-          'date': DateTime.now().subtract(const Duration(days: 5)),
-          'level': 'Rendah',
-          'score': 32.1,
-          'confidence': 91.5,
-        },
-        {
-          'date': DateTime.now().subtract(const Duration(days: 12)),
-          'level': 'Tinggi',
-          'score': 82.7,
-          'confidence': 85.3,
-        },
-      ];
+  /// 3 prediksi terbaru dari riwayat nyata.
+  List<Map<String, dynamic>> get recentPredictions {
+    final preds = _historyProvider.predictions;
+    if (preds.isEmpty) return [];
+    return preds.take(3).toList();
+  }
+
+  @override
+  void dispose() {
+    _historyProvider.removeListener(_onHistoryChanged);
+    super.dispose();
+  }
 }

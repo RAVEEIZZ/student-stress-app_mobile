@@ -3,10 +3,10 @@ class ApiConstants {
   ApiConstants._();
 
   /// Base URL Laravel API server (auth, follow-ups)
-  static const String baseUrl = 'http://192.168.40.89:8000';
+  static const String baseUrl = 'http://192.168.0.121:8000';
 
   /// Base URL FastAPI Prediction server (Railway)
-  static const String predictionBaseUrl = 'https://stress-api-deploy-production.up.railway.app';
+  static const String predictionBaseUrl = 'railway-app-stress-production.up.railway.app';
 
   /// Endpoint paths — Laravel
   static const String loginEndpoint = '/api/login';
