@@ -1,16 +1,19 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// Konstanta API untuk koneksi ke backend.
 class ApiConstants {
   ApiConstants._();
 
   /// Base URL Laravel API server (auth, follow-ups)
-  static const String baseUrl = 'http://192.168.0.121:8000';
+  static const String baseUrl = 'http://192.168.0.115:8000';
 
   /// Base URL FastAPI Prediction server (Railway)
-  static const String predictionBaseUrl = 'railway-app-stress-production.up.railway.app';
+  static const String predictionBaseUrl = 'https://railway-app-stress-production.up.railway.app';
 
   /// Endpoint paths — Laravel
   static const String loginEndpoint = '/api/login';
   static const String registerEndpoint = '/api/register';
+  static const String resetPasswordEndpoint = '/api/reset-password';
   static const String followUpsEndpoint = '/api/follow-ups';
   static const String stressResultsEndpoint = '/api/stress-results';
 
@@ -20,6 +23,7 @@ class ApiConstants {
   /// Full URLs — Laravel (Auth & Data)
   static String get loginUrl => '$baseUrl$loginEndpoint';
   static String get registerUrl => '$baseUrl$registerEndpoint';
+  static String get resetPasswordUrl => '$baseUrl$resetPasswordEndpoint';
   static String get followUpsUrl => '$baseUrl$followUpsEndpoint';
   static String get stressResultsUrl => '$baseUrl$stressResultsEndpoint';
 

@@ -87,17 +87,28 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Mock forgot password (akan diintegrasikan nanti)
-  Future<bool> forgotPassword(String email) async {
+  Future<bool> resetPassword(String email, String nim, String password, String passwordConfirmation) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      await AuthService.resetPassword(
+        email: email,
+        nim: nim,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+      );
 
-    _isLoading = false;
-    notifyListeners();
-    return true;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on Exception catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   void logout() {

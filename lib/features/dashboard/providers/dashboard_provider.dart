@@ -60,10 +60,13 @@ class DashboardProvider extends ChangeNotifier {
     }
     switch (lastPredictionLevel.toLowerCase()) {
       case 'rendah':
+      case 'low':
         return 'Kondisi stres Anda baik! Tetap jaga keseimbangan aktivitas dan istirahat. 🌟';
       case 'sedang':
+      case 'moderate':
         return 'Tingkat stres Anda cukup tinggi. Cobalah untuk mengatur waktu istirahat dan aktivitas relaksasi. 🧘';
       case 'tinggi':
+      case 'high':
         return 'Tingkat stres Anda tinggi. Sangat disarankan untuk berkonsultasi dengan konselor profesional. ⚠️';
       default:
         return 'Lakukan prediksi untuk mendapatkan insight.';
