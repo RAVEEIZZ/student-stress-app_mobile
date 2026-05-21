@@ -39,17 +39,7 @@ class ResultScreen extends StatelessWidget {
       cardTextColor = const Color(0xFFFFD1D1); // Light Red Accent
     }
 
-    // Calculate sum of Likert answers out of 65 (13 questions * 5 max)
-    final payload = data['payload'] as Map<String, dynamic>?;
-    int sumScore = 0;
-    if (payload != null) {
-      for (int i = 1; i <= 13; i++) {
-        sumScore += (payload['p$i'] as int? ?? 0);
-      }
-    } else {
-      final scorePercentage = (data['score'] as num?)?.toDouble() ?? 0.0;
-      sumScore = ((scorePercentage / 100) * 65).round();
-    }
+
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -165,23 +155,7 @@ class ResultScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    // Score Badge (Sum / 65)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.24),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Skor:  $sumScore/65',
-                        style: GoogleFonts.openSans(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
+
                   ],
                 ),
               ).animate().fadeIn(duration: 400.ms).scale(
