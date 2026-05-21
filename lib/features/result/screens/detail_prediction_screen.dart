@@ -19,6 +19,12 @@ class DetailPredictionScreen extends StatelessWidget {
     return '${date.day} ${months[date.month]} ${date.year}';
   }
 
+  double _parseDouble(dynamic value, {double defaultValue = 0.0}) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? defaultValue;
+    return defaultValue;
+  }
+
   Color _levelColor(String level) {
     switch (level.toLowerCase()) {
       case 'rendah':
@@ -84,8 +90,8 @@ class DetailPredictionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = predictionData ?? {};
     final level = data['level'] as String? ?? 'Rendah';
-    final score = (data['score'] as num?)?.toDouble() ?? 0;
-    final confidence = (data['confidence'] as num?)?.toDouble() ?? 0;
+    final score = _parseDouble(data['score']);
+    final confidence = _parseDouble(data['confidence']);
     final categories = data['categories'] as Map<String, double>? ??
         <String, double>{'Akademik': 45, 'Fisik': 35, 'Psikologis': 55, 'Sosial': 30};
     final date = data['date'] is DateTime ? data['date'] as DateTime : DateTime.now();

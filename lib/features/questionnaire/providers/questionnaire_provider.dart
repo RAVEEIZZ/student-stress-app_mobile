@@ -101,18 +101,33 @@ class QuestionnaireProvider extends ChangeNotifier {
       // ============================================
       // POST 1: Kirim ke Railway FastAPI (Prediksi)
       // ============================================
+      debugPrint('🚀 Sending to Railway API: ${ApiConstants.predictUrl}');
+      debugPrint('📦 Payload: ${jsonEncode(payload)}');
+      
       final response = await http.post(
         Uri.parse(ApiConstants.predictUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
-      );
+      ).timeout(const Duration(seconds: 30));
+
+      debugPrint('📡 Response status: ${response.statusCode}');
+      debugPrint('📡 Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final apiResult = jsonDecode(response.body) as Map<String, dynamic>;
+        
+        // Debug: print response
+        debugPrint('Railway API Response: $apiResult');
 
+        // Response format: {status, prediction, confidence, score, categories, top_factors, recommendations}
         if (apiResult['status'] == 'success') {
-          // API mengembalikan: prediction (0/1/2), top_factors, recommendations
           final prediction = apiResult['prediction'] as int;
+          final confidence = _parseDouble(apiResult['confidence']);
+          final topFactors = List<String>.from(apiResult['top_factors'] ?? []);
+          final recommendations = List<String>.from(apiResult['recommendations'] ?? []);
+          final categoriesApi = apiResult['categories'] as Map<String, dynamic>? ?? {};
+          
+          debugPrint('Parsed - Prediction: $prediction, Confidence: $confidence');
 
           // Mapping prediction level dari API
           String level;
@@ -149,53 +164,42 @@ class QuestionnaireProvider extends ChangeNotifier {
               break;
           }
 
-          // Top factors dari SHAP (XAI) — langsung dari API
-          final topFactors = List<String>.from(apiResult['top_factors'] ?? []);
-          final recommendations =
-              List<String>.from(apiResult['recommendations'] ?? []);
-
-          // Breakdown kategori berdasarkan jawaban user
+          // Breakdown kategori dari API (lowercase keys)
           final categories = <String, double>{
-            'Akademik':
-                _categoryAvg(payload, ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
-            'Personal & Emosional':
-                _categoryAvg(payload, ['p7', 'p8', 'p9']),
-            'Tekanan Nilai & Karier':
-                _categoryAvg(payload, ['p10', 'p11']),
-            'Kebiasaan & Harapan':
-                _categoryAvg(payload, ['p12', 'p13']),
+            'Akademik': _parseDouble(categoriesApi['akademik']),
+            'Fisik': _parseDouble(categoriesApi['fisik']),
+            'Psikologis': _parseDouble(categoriesApi['psikologis']),
+            'Sosial': _parseDouble(categoriesApi['sosial']),
           };
 
-          _result = {
-            'level': level,
-            'score': score,
-            'confidence': 92.5, // Model confidence
-            'emoji': emoji,
-            'message': message,
-            'categories': categories,
-            'date': DateTime.now(),
-            'faculty': _selectedFaculty,
-            'payload': payload,
-            // Data XAI dari Railway API
-            'top_factors': topFactors,
-            'recommendations': recommendations,
-            'prediction_raw': prediction,
-            'api_source': 'railway', // Penanda bahwa hasil dari API asli
-          };
+        _result = {
+          'level': level,
+          'score': score,
+          'confidence': confidence,
+          'emoji': emoji,
+          'message': message,
+          'categories': categories,
+          'date': DateTime.now(),
+          'faculty': _selectedFaculty,
+          'payload': payload,
+          'top_factors': topFactors,
+          'recommendations': recommendations,
+          'api_source': 'railway',
+        };
 
-          // ============================================
-          // POST 2: Kirim ke Laravel API (Simpan riwayat)
-          // ============================================
-          // Non-blocking: jika gagal, user tetap bisa lihat hasil.
-          // Dosen wali akan bisa lihat data ini di web monitoring.
-          _sendToLaravel(
-            nim: nim,
-            tingkatStres: levelForLaravel,
-            topFactors: topFactors,
-            recommendations: recommendations,
-            predictionRaw: prediction,
-            score: score,
-          );
+        // ============================================
+        // POST 2: Kirim ke Laravel API (Simpan riwayat)
+        // ============================================
+        _sendToLaravel(
+          nim: nim,
+          tingkatStres: levelForLaravel,
+          topFactors: topFactors,
+          recommendations: recommendations,
+          predictionRaw: prediction,
+          score: score,
+          confidence: confidence,
+          categories: categories,
+        );
         } else {
           throw Exception(apiResult['message'] ?? 'Prediction failed');
         }
@@ -204,13 +208,15 @@ class QuestionnaireProvider extends ChangeNotifier {
       }
     } catch (e) {
       // Fallback jika API gagal — hitung lokal
-      debugPrint('API Error: $e — menggunakan fallback lokal');
+      debugPrint('❌ API Error: $e — menggunakan fallback lokal');
+      debugPrint('Stack trace: ${StackTrace.current}');
       final payload = buildPayload();
       _result = _buildFallbackResult(payload);
 
       // Tetap coba kirim ke Laravel meskipun pakai fallback
       if (nim.isNotEmpty) {
         final level = _result!['level'] as String;
+        final confidence = _parseDouble(_result!['confidence']);
         String levelForLaravel;
         switch (level) {
           case 'Rendah':
@@ -229,6 +235,8 @@ class QuestionnaireProvider extends ChangeNotifier {
           recommendations: null,
           predictionRaw: null,
           score: (_result!['score'] as num).toDouble(),
+          confidence: confidence,
+          categories: _result!['categories'] as Map<String, double>?,
         );
       }
     }
@@ -246,6 +254,8 @@ class QuestionnaireProvider extends ChangeNotifier {
     List<String>? recommendations,
     int? predictionRaw,
     double? score,
+    double? confidence,
+    Map<String, double>? categories,
   }) async {
     try {
       // Gabung recommendations menjadi satu string untuk kolom text
@@ -262,6 +272,8 @@ class QuestionnaireProvider extends ChangeNotifier {
         recommendation: recommendationText,
         predictionRaw: predictionRaw,
         score: score,
+        confidence: confidence,
+        categories: categories,
       );
 
       _savedToLaravel = success;
@@ -328,6 +340,12 @@ class QuestionnaireProvider extends ChangeNotifier {
     final scores = keys.map((k) => (payload[k] as int? ?? 0).toDouble());
     final avg = scores.reduce((a, b) => a + b) / keys.length;
     return (avg / 5) * 100;
+  }
+
+  double _parseDouble(dynamic value, {double defaultValue = 0.0}) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? defaultValue;
+    return defaultValue;
   }
 
   void reset() {

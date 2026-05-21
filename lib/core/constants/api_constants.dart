@@ -7,11 +7,8 @@ class ApiConstants {
   /// Base URL Laravel API server (auth, follow-ups)
   /// 10.0.2.2 untuk Android emulator, localhost untuk web/desktop
   static String get baseUrl => kIsWeb
-      ? 'http://192.168.100.144:8000'
-      : 'http://192.168.100.144:8000';
-
-  /// Base URL FastAPI Prediction server (Railway)
-  static const String predictionBaseUrl = 'https://stress-api-deploy-production.up.railway.app';
+      ? 'http://192.168.208.224:8000'
+      : 'http://192.168.208.224:8000';
 
   /// Endpoint paths — Laravel
   static const String loginEndpoint = '/api/login';
@@ -19,9 +16,7 @@ class ApiConstants {
   static const String resetPasswordEndpoint = '/api/reset-password';
   static const String followUpsEndpoint = '/api/follow-ups';
   static const String stressResultsEndpoint = '/api/stress-results';
-
-  /// Endpoint paths — FastAPI (Prediction)
-  static const String predictEndpoint = '/predict';
+  static const String railwayProxyEndpoint = '/api/railway'; // Laravel proxy to Railway
 
   /// Full URLs — Laravel (Auth & Data)
   static String get loginUrl => '$baseUrl$loginEndpoint';
@@ -30,6 +25,7 @@ class ApiConstants {
   static String get followUpsUrl => '$baseUrl$followUpsEndpoint';
   static String get stressResultsUrl => '$baseUrl$stressResultsEndpoint';
 
-  /// Full URL — FastAPI (Prediction)
-  static String get predictUrl => '$predictionBaseUrl$predictEndpoint';
+  /// Full URL — Prediction via Laravel Proxy (CORS-safe)
+  /// Laravel akan forward ke Railway: /api/railway/predict → Railway /predict
+  static String get predictUrl => '$baseUrl$railwayProxyEndpoint/predict';
 }

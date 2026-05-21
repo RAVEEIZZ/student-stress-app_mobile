@@ -40,20 +40,36 @@ class HistoryProvider extends ChangeNotifier {
 
       // Transform data dari format Laravel API ke format yang digunakan UI
       _predictions = data.map((item) {
-        return <String, dynamic>{
-          'id': item['id']?.toString() ?? '',
-          'date': DateTime.tryParse(item['created_at'] ?? '') ?? DateTime.now(),
-          'level': _mapLevelToIndonesian(item['tingkat_stres'] ?? ''),
-          'score': (item['score'] as num?)?.toDouble() ?? 0.0,
-          'confidence': 90.0,
-          'top_factors': item['top_factors'],
-          'recommendation': item['recommendation'],
-          'categories': <String, double>{
+        // Parse categories jika ada dari Laravel API
+        final categoriesData = item['categories'];
+        Map<String, double> categories;
+        
+        if (categoriesData is Map) {
+          categories = {
+            'Akademik': _parseDouble(categoriesData['akademik'] ?? categoriesData['Akademik']),
+            'Fisik': _parseDouble(categoriesData['fisik'] ?? categoriesData['Fisik']),
+            'Psikologis': _parseDouble(categoriesData['psikologis'] ?? categoriesData['Psikologis']),
+            'Sosial': _parseDouble(categoriesData['sosial'] ?? categoriesData['Sosial']),
+          };
+        } else {
+          // Default jika tidak ada categories
+          categories = {
             'Akademik': 0,
             'Fisik': 0,
             'Psikologis': 0,
             'Sosial': 0,
-          },
+          };
+        }
+
+        return <String, dynamic>{
+          'id': item['id']?.toString() ?? '',
+          'date': DateTime.tryParse(item['created_at'] ?? '')?.toLocal() ?? DateTime.now(),
+          'level': _mapLevelToIndonesian(item['tingkat_stres'] ?? ''),
+          'score': _parseDouble(item['score']),
+          'confidence': _parseDouble(item['confidence']),
+          'top_factors': item['top_factors'],
+          'recommendation': item['recommendation'],
+          'categories': categories,
         };
       }).toList();
 
@@ -92,6 +108,12 @@ class HistoryProvider extends ChangeNotifier {
       default:
         return level;
     }
+  }
+
+  double _parseDouble(dynamic value, {double defaultValue = 0.0}) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? defaultValue;
+    return defaultValue;
   }
 
   /// Cek apakah item cocok dengan level tertentu (case-insensitive).
