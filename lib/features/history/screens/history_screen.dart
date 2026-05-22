@@ -48,6 +48,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return '$hour:$minute';
   }
 
+  double _parseDouble(dynamic value, {double defaultValue = 0.0}) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? defaultValue;
+    return defaultValue;
+  }
+
   @override
   Widget build(BuildContext context) {
     final history = context.watch<HistoryProvider>();
@@ -295,9 +301,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       }
 
                       // Score percentage (0-100)
-                      final scorePercentage = (pred['score'] as num?)?.toDouble() ?? 0.0;
+                      final scorePercentage = _parseDouble(pred['score']);
 
-                      final confidenceVal = (pred['confidence'] as num?)?.toDouble() ?? 92.5;
+                      final confidenceVal = _parseDouble(pred['confidence']);
 
                       return Container(
                         height: 110,
