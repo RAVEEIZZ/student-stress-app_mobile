@@ -359,7 +359,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Isi Kuesioner Baru',
+                                  'Isi Asesmen Baru',
                                   style: TextStyle(
                                     color: Color(0xFF242424),
                                     fontSize: 11,

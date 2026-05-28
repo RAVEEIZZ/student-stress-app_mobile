@@ -86,7 +86,11 @@ class ProfileScreen extends StatelessWidget {
                       children: [
                         _statItem('12', 'Prediksi', AppColors.primary),
                         Container(width: 1, height: 36, color: AppColors.border),
-                        _statItem('2', 'Bulan', AppColors.stressLow),
+                        _statItem(
+                          _formatActiveDuration(user?.createdAt),
+                          _formatActiveDurationLabel(user?.createdAt),
+                          AppColors.stressLow,
+                        ),
                         Container(width: 1, height: 36, color: AppColors.border),
                         _statItem('87%', 'Avg Conf', AppColors.stressMedium),
                       ],
@@ -163,5 +167,22 @@ class ProfileScreen extends StatelessWidget {
   String _formatDate(DateTime date) {
     const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     return '${date.day} ${months[date.month]} ${date.year}';
+  }
+
+  /// Hitung angka durasi aktif dari createdAt sampai sekarang.
+  /// < 30 hari → tampil jumlah hari, >= 30 hari → tampil jumlah bulan.
+  String _formatActiveDuration(DateTime? createdAt) {
+    if (createdAt == null) return '-';
+    final diff = DateTime.now().difference(createdAt);
+    final days = diff.inDays;
+    if (days < 30) return '${days < 1 ? 1 : days}';
+    return '${(days / 30).floor()}';
+  }
+
+  /// Label satuan untuk durasi aktif.
+  String _formatActiveDurationLabel(DateTime? createdAt) {
+    if (createdAt == null) return 'Aktif';
+    final diff = DateTime.now().difference(createdAt);
+    return diff.inDays < 30 ? 'Hari' : 'Bulan';
   }
 }
