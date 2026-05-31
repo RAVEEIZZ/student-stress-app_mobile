@@ -174,8 +174,11 @@ class ProfileScreen extends StatelessWidget {
   /// < 30 hari → tampil jumlah hari, >= 30 hari → tampil jumlah bulan.
   String _formatActiveDuration(DateTime? createdAt) {
     if (createdAt == null) return '-';
-    final diff = DateTime.now().difference(createdAt);
-    final days = diff.inDays;
+    final now = DateTime.now();
+    // Hitung selisih hari berdasarkan tanggal kalender, bukan jam
+    final today = DateTime(now.year, now.month, now.day);
+    final created = DateTime(createdAt.year, createdAt.month, createdAt.day);
+    final days = today.difference(created).inDays;
     if (days < 30) return '${days < 1 ? 1 : days}';
     return '${(days / 30).floor()}';
   }
@@ -183,7 +186,9 @@ class ProfileScreen extends StatelessWidget {
   /// Label satuan untuk durasi aktif.
   String _formatActiveDurationLabel(DateTime? createdAt) {
     if (createdAt == null) return 'Aktif';
-    final diff = DateTime.now().difference(createdAt);
-    return diff.inDays < 30 ? 'Hari' : 'Bulan';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final created = DateTime(createdAt.year, createdAt.month, createdAt.day);
+    return today.difference(created).inDays < 30 ? 'Hari' : 'Bulan';
   }
 }
