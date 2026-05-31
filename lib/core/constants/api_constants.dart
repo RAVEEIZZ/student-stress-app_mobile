@@ -7,8 +7,8 @@ class ApiConstants {
   /// Base URL Laravel API server (auth, follow-ups)
   /// 10.0.2.2 untuk Android emulator, localhost untuk web/desktop
   static String get baseUrl => kIsWeb
-      ? 'http://192.168.208.224:8000'
-      : 'http://192.168.208.224:8000';
+      ? 'http://192.168.100.144:8000'
+      : 'http://192.168.100.144:8000';
 
   /// Endpoint paths — Laravel
   static const String loginEndpoint = '/api/login';

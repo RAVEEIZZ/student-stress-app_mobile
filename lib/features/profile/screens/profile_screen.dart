@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/decorative_circles.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../history/providers/history_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -15,7 +16,9 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final history = context.watch<HistoryProvider>();
     final user = auth.user;
+    final totalPredictions = history.totalPredictions;
 
     return Scaffold(
       body: Stack(
@@ -84,15 +87,13 @@ class ProfileScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _statItem('12', 'Prediksi', AppColors.primary),
+                        _statItem('$totalPredictions', 'Prediksi', AppColors.primary),
                         Container(width: 1, height: 36, color: AppColors.border),
                         _statItem(
                           _formatActiveDuration(user?.createdAt),
                           _formatActiveDurationLabel(user?.createdAt),
                           AppColors.stressLow,
                         ),
-                        Container(width: 1, height: 36, color: AppColors.border),
-                        _statItem('87%', 'Avg Conf', AppColors.stressMedium),
                       ],
                     ),
                   ).animate().fadeIn(delay: 400.ms, duration: 400.ms),
