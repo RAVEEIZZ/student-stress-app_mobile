@@ -12,6 +12,8 @@ import '../features/result/screens/result_screen.dart';
 import '../features/result/screens/detail_prediction_screen.dart';
 import '../features/history/screens/history_screen.dart';
 import '../features/notification/screens/notification_screen.dart';
+import '../features/notification/screens/notification_detail_screen.dart';
+import '../features/notification/models/notification_model.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../navigation/bottom_nav_shell.dart';
 import '../core/theme/app_theme.dart';
@@ -67,6 +69,13 @@ class StressApp extends StatelessWidget {
             pageBuilder: (context, state) => NoTransitionPage(
               child: NotificationScreen(),
             ),
+          ),
+          GoRoute(
+            path: AppRoutes.notificationDetail,
+            builder: (context, state) {
+              final notif = state.extra as NotificationModel;
+              return NotificationDetailScreen(notification: notif);
+            },
           ),
         ],
       ),

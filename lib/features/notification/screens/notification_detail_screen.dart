@@ -54,12 +54,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
           onPressed: () => context.pop(),
           icon: const Icon(Iconsax.arrow_left, color: AppColors.textPrimary),
         ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Iconsax.more, color: AppColors.textPrimary),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
