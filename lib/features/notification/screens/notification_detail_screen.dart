@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/gradient_button.dart';
 import '../models/notification_model.dart';
+import '../providers/notification_provider.dart';
 
 class NotificationDetailScreen extends StatefulWidget {
   final NotificationModel notification;
@@ -21,6 +22,15 @@ class NotificationDetailScreen extends StatefulWidget {
 }
 
 class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Tandai notifikasi sebagai sudah dibaca saat halaman dibuka
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<NotificationProvider>().markAsRead(widget.notification.id);
+    });
+  }
+
   String _formatDateTime(DateTime date) {
     const months = [
       '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
