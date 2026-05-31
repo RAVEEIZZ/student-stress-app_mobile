@@ -71,7 +71,7 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _infoTile(Iconsax.card, 'NIM', user?.nim ?? '-'),
                   const SizedBox(height: 12),
-                  _infoTile(Iconsax.calendar_1, 'Bergabung Sejak', _formatDate(user?.createdAt ?? DateTime.now())),
+                  _infoTile(Iconsax.calendar_1, 'Bergabung Sejak', user?.createdAt != null ? _formatDate(user!.createdAt!.toLocal()) : '-'),
                   const SizedBox(height: 32),
                   // Stats
                   Container(
