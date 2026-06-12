@@ -190,6 +190,19 @@ class QuestionnaireQuestionsScreen extends StatelessWidget {
                                   final authProvider = context.read<AuthProvider>();
                                   final nim = authProvider.user?.nim ?? '';
 
+                                  // Guard: pastikan user sudah login
+                                  if (nim.isEmpty) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Sesi login tidak valid. Silakan login ulang.'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                    return;
+                                  }
+
                                   // Double Post: Railway → Laravel
                                   final result = await provider.submitAnswers(nim: nim);
 

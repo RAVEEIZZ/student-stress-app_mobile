@@ -244,7 +244,7 @@ class QuestionnaireProvider extends ChangeNotifier {
             predictionRaw: prediction,
             score: apiScore,
             confidence: apiConfidence,
-            answers: categories,
+            categories: categories,
           );
         } else {
           throw Exception(apiResult['message'] ?? 'Prediction failed');
@@ -280,7 +280,7 @@ class QuestionnaireProvider extends ChangeNotifier {
           predictionRaw: null,
           score: (_result!['score'] as num).toDouble(),
           confidence: (_result!['confidence'] as num).toDouble(),
-          answers: _result!['categories'] as Map<String, double>?,
+          categories: _result!['categories'] as Map<String, double>?,
         );
       }
     }
@@ -299,7 +299,7 @@ class QuestionnaireProvider extends ChangeNotifier {
     int? predictionRaw,
     double? score,
     double? confidence,
-    Map<String, double>? answers,
+    Map<String, double>? categories,
   }) async {
     try {
       // Gabung recommendations menjadi satu string untuk kolom text
@@ -317,7 +317,7 @@ class QuestionnaireProvider extends ChangeNotifier {
         predictionRaw: predictionRaw,
         score: score,
         confidence: confidence,
-        answers: answers,
+        categories: categories,
       );
 
       _savedToLaravel = success;

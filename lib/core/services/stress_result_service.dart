@@ -21,7 +21,7 @@ class StressResultService {
     int? predictionRaw,
     double? score,
     double? confidence,
-    Map<String, double>? answers,
+    Map<String, double>? categories,
   }) async {
     try {
       final body = <String, dynamic>{
@@ -44,8 +44,8 @@ class StressResultService {
       if (confidence != null) {
         body['confidence'] = confidence;
       }
-      if (answers != null) {
-        body['answers'] = answers;
+      if (categories != null) {
+        body['categories'] = categories;
       }
 
       debugPrint('📤 Sending prediction to Laravel: ${ApiConstants.stressResultsUrl}');
