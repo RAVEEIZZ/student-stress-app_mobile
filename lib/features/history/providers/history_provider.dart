@@ -48,11 +48,11 @@ class HistoryProvider extends ChangeNotifier {
           'Sosial': 0,
         };
         
-        if (item['answers'] != null) {
+        if (item['categories'] != null) {
           try {
-            final parsed = item['answers'] is String 
-                ? jsonDecode(item['answers']) 
-                : item['answers'];
+            final parsed = item['categories'] is String 
+                ? jsonDecode(item['categories']) 
+                : item['categories'];
                 
             if (parsed is Map) {
               parsed.forEach((k, v) {
@@ -60,7 +60,7 @@ class HistoryProvider extends ChangeNotifier {
               });
             }
           } catch (e) {
-            debugPrint('Error parsing answers in history: $e');
+            debugPrint('Error parsing categories in history: $e');
           }
         }
 
