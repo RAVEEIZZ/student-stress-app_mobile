@@ -100,4 +100,13 @@ class NotificationProvider extends ChangeNotifier {
     _hasFetched = false;
     notifyListeners();
   }
+
+  /// Tandai notifikasi sebagai sudah dibaca berdasarkan id.
+  void markAsRead(int id) {
+    final index = _notifications.indexWhere((n) => n.id == id);
+    if (index != -1 && !_notifications[index].isRead) {
+      _notifications[index] = _notifications[index].copyWith(isRead: true);
+      notifyListeners();
+    }
+  }
 }

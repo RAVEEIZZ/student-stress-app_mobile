@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/decorative_circles.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../history/providers/history_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -15,7 +16,9 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final history = context.watch<HistoryProvider>();
     final user = auth.user;
+    final totalPredictions = history.totalPredictions;
 
     return Scaffold(
       body: Stack(
@@ -71,7 +74,7 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _infoTile(Iconsax.card, 'NIM', user?.nim ?? '-'),
                   const SizedBox(height: 12),
-                  _infoTile(Iconsax.calendar_1, 'Bergabung Sejak', _formatDate(user?.createdAt ?? DateTime.now())),
+                  _infoTile(Iconsax.calendar_1, 'Bergabung Sejak', user?.createdAt != null ? _formatDate(user!.createdAt!.toLocal()) : '-'),
                   const SizedBox(height: 32),
                   // Stats
                   Container(
@@ -84,11 +87,13 @@ class ProfileScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _statItem('12', 'Prediksi', AppColors.primary),
+                        _statItem('$totalPredictions', 'Prediksi', AppColors.primary),
                         Container(width: 1, height: 36, color: AppColors.border),
-                        _statItem('2', 'Bulan', AppColors.stressLow),
-                        Container(width: 1, height: 36, color: AppColors.border),
-                        _statItem('87%', 'Avg Conf', AppColors.stressMedium),
+                        _statItem(
+                          _formatActiveDuration(user?.createdAt),
+                          _formatActiveDurationLabel(user?.createdAt),
+                          AppColors.stressLow,
+                        ),
                       ],
                     ),
                   ).animate().fadeIn(delay: 400.ms, duration: 400.ms),
@@ -163,5 +168,27 @@ class ProfileScreen extends StatelessWidget {
   String _formatDate(DateTime date) {
     const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     return '${date.day} ${months[date.month]} ${date.year}';
+  }
+
+  /// Hitung angka durasi aktif dari createdAt sampai sekarang.
+  /// < 30 hari → tampil jumlah hari, >= 30 hari → tampil jumlah bulan.
+  String _formatActiveDuration(DateTime? createdAt) {
+    if (createdAt == null) return '-';
+    final now = DateTime.now();
+    // Hitung selisih hari berdasarkan tanggal kalender, bukan jam
+    final today = DateTime(now.year, now.month, now.day);
+    final created = DateTime(createdAt.year, createdAt.month, createdAt.day);
+    final days = today.difference(created).inDays;
+    if (days < 30) return '${days < 1 ? 1 : days}';
+    return '${(days / 30).floor()}';
+  }
+
+  /// Label satuan untuk durasi aktif.
+  String _formatActiveDurationLabel(DateTime? createdAt) {
+    if (createdAt == null) return 'Aktif';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final created = DateTime(createdAt.year, createdAt.month, createdAt.day);
+    return today.difference(created).inDays < 30 ? 'Hari' : 'Bulan';
   }
 }

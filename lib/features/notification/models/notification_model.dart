@@ -38,6 +38,16 @@ class NotificationModel {
     );
   }
 
+  NotificationModel copyWith({bool? isRead}) {
+    return NotificationModel(
+      id: id,
+      note: note,
+      dosen: dosen,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt,
+    );
+  }
+
   /// Hitung waktu relatif (misal: "2 jam lalu", "3 hari lalu").
   String get timeAgo {
     final now = DateTime.now();

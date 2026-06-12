@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import '../../../app/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/decorative_circles.dart';
@@ -136,13 +138,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget _buildApiNotifCard(NotificationModel notif) {
     return GestureDetector(
       onTap: () {
-        // Navigate to detail screen
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => NotificationDetailScreen(notification: notif),
-          ),
-        );
+        context.push(AppRoutes.notificationDetail, extra: notif);
       },
       child: Container(
       padding: const EdgeInsets.all(18),
