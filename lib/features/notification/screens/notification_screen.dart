@@ -10,7 +10,6 @@ import '../../../core/widgets/decorative_circles.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../models/notification_model.dart';
-import 'notification_detail_screen.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -29,10 +28,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
     });
   }
 
-  void _loadNotifications() {
+  Future<void> _loadNotifications() async {
     final auth = context.read<AuthProvider>();
     if (auth.isLoggedIn && auth.user != null) {
-      context.read<NotificationProvider>().fetchNotifications(auth.user!.id);
+      final notificationProvider = context.read<NotificationProvider>();
+      await notificationProvider.fetchNotifications(auth.user!.id);
+      notificationProvider.markAllAsRead();
     }
     // Jika belum login, dummy data dari constructor sudah ada
   }
@@ -55,6 +56,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     final auth = context.read<AuthProvider>();
                     if (auth.isLoggedIn) {
                       await notifProvider.refresh(auth.user!.id);
+                      notifProvider.markAllAsRead();
                     }
                   },
                   color: AppColors.primary,
@@ -71,7 +73,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             Text('Notifikasi', style: AppTextStyles.heading2),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
@@ -79,8 +83,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                               child: Text(
                                 '$totalUnread baru',
                                 style: AppTextStyles.bodySmall.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w700),
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ],
@@ -91,7 +96,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         // === NOTIFIKASI DARI API (FOLLOW-UP DOSEN) ===
                         if (notifProvider.isLoading)
                           _buildLoadingIndicator()
-                        else if (notifProvider.error != null && apiNotifs.isEmpty)
+                        else if (notifProvider.error != null &&
+                            apiNotifs.isEmpty)
                           _buildErrorCard(notifProvider.error!)
                         else if (apiNotifs.isNotEmpty) ...[
                           // Section header
@@ -99,13 +105,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Row(
                               children: [
-                                Icon(Iconsax.teacher, size: 18,
-                                    color: AppColors.primary),
+                                Icon(
+                                  Iconsax.teacher,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
                                 const SizedBox(width: 8),
-                                Text('Follow-Up Dosen',
-                                    style: AppTextStyles.subtitle2.copyWith(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.w700)),
+                                Text(
+                                  'Follow-Up Dosen',
+                                  style: AppTextStyles.subtitle2.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ],
                             ),
                           ).animate().fadeIn(duration: 300.ms),
@@ -118,8 +130,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                               padding: const EdgeInsets.only(bottom: 12),
                               child: _buildApiNotifCard(notif),
                             ).animate().fadeIn(
-                                delay: (100 + index * 80).ms,
-                                duration: 400.ms);
+                              delay: (100 + index * 80).ms,
+                              duration: 400.ms,
+                            );
                           }),
                         ],
                       ],
@@ -136,25 +149,24 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   /// Card untuk notifikasi dari API (follow-up dosen).
   Widget _buildApiNotifCard(NotificationModel notif) {
-    return GestureDetector(
-      onTap: () {
-        context.push(AppRoutes.notificationDetail, extra: notif);
-      },
-      child: Container(
+    return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: notif.isRead
-            ? AppColors.surface
-            : AppColors.primary.withValues(alpha: 0.03),
+        color:
+            notif.isRead
+                ? AppColors.surface
+                : AppColors.primary.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(20),
-        border: notif.isRead
-            ? null
-            : Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+        border:
+            notif.isRead
+                ? null
+                : Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
         boxShadow: [
           BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 12,
-              offset: const Offset(0, 3)),
+            color: AppColors.shadow,
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
         ],
       ),
       child: Row(
@@ -168,7 +180,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
               color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Iconsax.teacher, color: AppColors.primary, size: 22),
+            child: const Icon(
+              Iconsax.teacher,
+              color: AppColors.primary,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -215,7 +231,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
         ],
       ),
-    ),
     );
   }
 
@@ -235,9 +250,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Text('Memuat notifikasi...',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textHint)),
+            Text(
+              'Memuat notifikasi...',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textHint,
+              ),
+            ),
           ],
         ),
       ),
@@ -256,14 +274,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
         ),
         child: Row(
           children: [
-            const Icon(Iconsax.warning_2,
-                color: AppColors.stressHigh, size: 20),
+            const Icon(
+              Iconsax.warning_2,
+              color: AppColors.stressHigh,
+              size: 20,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 message,
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.stressHigh),
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.stressHigh,
+                ),
               ),
             ),
             IconButton(

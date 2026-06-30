@@ -12,8 +12,6 @@ import '../features/result/screens/result_screen.dart';
 import '../features/result/screens/detail_prediction_screen.dart';
 import '../features/history/screens/history_screen.dart';
 import '../features/notification/screens/notification_screen.dart';
-import '../features/notification/screens/notification_detail_screen.dart';
-import '../features/notification/models/notification_model.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../navigation/bottom_nav_shell.dart';
 import '../core/theme/app_theme.dart';
@@ -48,34 +46,27 @@ class StressApp extends StatelessWidget {
         routes: [
           GoRoute(
             path: AppRoutes.dashboard,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: DashboardScreen(),
-            ),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: DashboardScreen()),
           ),
           GoRoute(
             path: AppRoutes.questionnaire,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: QuestionnaireIntroScreen(),
-            ),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: QuestionnaireIntroScreen()),
           ),
           GoRoute(
             path: AppRoutes.history,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: HistoryScreen(),
-            ),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: HistoryScreen()),
           ),
           GoRoute(
             path: AppRoutes.notification,
-            pageBuilder: (context, state) => NoTransitionPage(
-              child: NotificationScreen(),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.notificationDetail,
-            builder: (context, state) {
-              final notif = state.extra as NotificationModel;
-              return NotificationDetailScreen(notification: notif);
-            },
+            pageBuilder:
+                (context, state) =>
+                    NoTransitionPage(child: NotificationScreen()),
           ),
         ],
       ),

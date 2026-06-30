@@ -13,6 +13,5 @@ class AppRoutes {
   static const String detailPrediction = '/detail-prediction';
   static const String history = '/history';
   static const String notification = '/notification';
-  static const String notificationDetail = '/notification/detail';
   static const String profile = '/profile';
 }

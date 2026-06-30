@@ -14,28 +14,32 @@ class NotificationProvider extends ChangeNotifier {
     _notifications = [
       NotificationModel(
         id: 1,
-        note: 'Jadwal konsultasi dengan konselor kampus besok pukul 10.00 WIB. Berdasarkan hasil prediksi stres Anda, saya ingin membahas kondisi akademik dan kesejahteraan Anda lebih lanjut.',
+        note:
+            'Jadwal konsultasi dengan konselor kampus besok pukul 10.00 WIB. Berdasarkan hasil prediksi stres Anda, saya ingin membahas kondisi akademik dan kesejahteraan Anda lebih lanjut.',
         dosen: DosenInfo(id: 1, nama: 'Dr. Rina Sari, M.Psi'),
         isRead: false,
         createdAt: DateTime.now().subtract(const Duration(hours: 5)),
       ),
       NotificationModel(
         id: 2,
-        note: 'Sudah 2 minggu sejak prediksi terakhir. Isi kuesioner untuk update kondisi Anda. Saya ingin memantau perkembangan tingkat stres Anda secara berkala.',
+        note:
+            'Sudah 2 minggu sejak prediksi terakhir. Isi kuesioner untuk update kondisi Anda. Saya ingin memantau perkembangan tingkat stres Anda secara berkala.',
         dosen: DosenInfo(id: 2, nama: 'Prof. Ahmad Fauzi, M.Kom'),
         isRead: false,
         createdAt: DateTime.now().subtract(const Duration(days: 1)),
       ),
       NotificationModel(
         id: 3,
-        note: 'Hasil prediksi stres Anda sudah tersedia. Lihat detail dan rekomendasi. Saya perhatikan ada peningkatan tingkat stres dalam beberapa minggu terakhir.',
+        note:
+            'Hasil prediksi stres Anda sudah tersedia. Lihat detail dan rekomendasi. Saya perhatikan ada peningkatan tingkat stres dalam beberapa minggu terakhir.',
         dosen: DosenInfo(id: 3, nama: 'Dr. Siti Nurhaliza, S.Psi'),
         isRead: false,
         createdAt: DateTime.now().subtract(const Duration(days: 3)),
       ),
       NotificationModel(
         id: 4,
-        note: 'Baca artikel terbaru tentang cara mengelola stres akademik di masa ujian. Saya lampirkan beberapa tips yang mungkin berguna untuk Anda.',
+        note:
+            'Baca artikel terbaru tentang cara mengelola stres akademik di masa ujian. Saya lampirkan beberapa tips yang mungkin berguna untuk Anda.',
         dosen: DosenInfo(id: 4, nama: 'Dr. Budi Santoso, M.Pd'),
         isRead: true,
         createdAt: DateTime.now().subtract(const Duration(days: 5)),
@@ -108,5 +112,19 @@ class NotificationProvider extends ChangeNotifier {
       _notifications[index] = _notifications[index].copyWith(isRead: true);
       notifyListeners();
     }
+  }
+
+  /// Tandai semua notifikasi sebagai sudah dibaca.
+  void markAllAsRead() {
+    final hasUnread = _notifications.any(
+      (notification) => !notification.isRead,
+    );
+    if (!hasUnread) return;
+
+    _notifications =
+        _notifications
+            .map((notification) => notification.copyWith(isRead: true))
+            .toList();
+    notifyListeners();
   }
 }
